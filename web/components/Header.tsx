@@ -24,7 +24,7 @@ export default function Header(){
             <a href={`/${locale}/plateforme`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('platform')}</a>
             <a href={`/${locale}/topologie`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Racks</a>
             <a href={`/${locale}/graphe-reseau`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Réseau</a>
-            <a href={`/${locale}/modules/conformite-eed`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">EED</a>
+            <a href={`/${locale}/journal-brassage`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Journal</a>
             <a href={`/${locale}/power`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('power')}</a>
           </nav>
         </div>

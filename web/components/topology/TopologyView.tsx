@@ -1,10 +1,11 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { gql, useQuery, useSubscription } from '@apollo/client';
 import { TOPOLOGY_LIFECYCLE } from '@/lib/topologySubscriptions';
 import GraphQLStatus from '@/components/GraphQLStatus';
 import { classifyGraphQLError } from '@/lib/graphqlErrors';
 import { GRAPHQL_URL } from '@/lib/graphql';
+import { readLastRack, writeLastRack } from '@/lib/lastRack';
 import RackElevation, { TopoRack } from './RackElevation';
 
 const RACKS = gql`
@@ -57,6 +58,12 @@ export default function TopologyView() {
 
   const live = Boolean(data?.racks?.length);
   const racks: TopoRack[] = live ? data.racks : DEMO;
+
+  useEffect(() => {
+    const saved = readLastRack();
+    if (saved && racks.some((r) => r.id === saved)) setSelRack(saved);
+  }, [racks]);
+
   const current = racks.find((r) => r.id === selRack) || racks[0];
   const selected = current?.devices?.find((d) => d.id === selDev);
   const classified = useMemo(
@@ -66,6 +73,12 @@ export default function TopologyView() {
 
   const used = current?.devices?.reduce((s, d) => s + d.heightU, 0) || 0;
   const hu = current?.heightU || 42;
+
+  function pickRack(id: string) {
+    setSelRack(id);
+    setSelDev(undefined);
+    writeLastRack(id);
+  }
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 py-8 space-y-6">
@@ -86,7 +99,7 @@ export default function TopologyView() {
           <button
             key={r.id}
             type="button"
-            onClick={() => { setSelRack(r.id); setSelDev(undefined); }}
+            onClick={() => pickRack(r.id)}
             className={`px-3 py-1.5 rounded border text-[12px] ${
               current?.id === r.id ? 'bg-[#032D60] text-white border-[#032D60]' : 'bg-white'
             }`}

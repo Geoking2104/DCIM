@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
+import MetricsLinks from '@/components/metrics/MetricsLinks';
 
 const CARDS = [
-  { id: 'pue', title: 'PUE', formula: 'salle kWh / IT kWh', hint: '1.0 = parfait · <1.2 excellent', href: 'pue' },
-  { id: 'wue', title: 'WUE', formula: 'litres / IT kWh', hint: '<0.2 L/kWh = sobre', href: 'wue' },
-  { id: 'cue', title: 'CUE', formula: 'kg CO₂ / IT kWh', hint: 'facteur réseau × PUE', href: 'cue' },
-  { id: 'erf', title: 'ERF', formula: 'chaleur réutilisée / salle', hint: '10 % 2026 · 15 % 2027 · 20 % 2028', href: 'erf' }
+  { id: 'pue', title: 'PUE', formula: 'salle kWh / IT kWh', hint: '1.0 = parfait · <1.2 excellent', href: '/outils/pue' },
+  { id: 'wue', title: 'WUE', formula: 'litres / IT kWh', hint: '<0.2 L/kWh = sobre', href: '/outils/wue' },
+  { id: 'cue', title: 'CUE', formula: 'kg CO₂ / IT kWh', hint: 'facteur réseau × PUE', href: '/eed' },
+  { id: 'erf', title: 'ERF', formula: 'chaleur réutilisée / salle', hint: '10 % 2026 · 15 % 2027 · 20 % 2028', href: '/eed' }
 ];
 
 export default function MetricsExplorer({ locale }: { locale: string }) {
@@ -43,18 +44,20 @@ export default function MetricsExplorer({ locale }: { locale: string }) {
       <div>
         <p className="text-[11px] uppercase font-bold text-[#706E6B]">Performance</p>
         <h1 className="text-[28px] font-extrabold">Métriques salle / machines</h1>
-        <p className="text-[13px] text-[#444] max-w-[62ch]">
-          Quatre indicateurs ISO/IEC 30134 + EED. Calcul local ou sidecar Rust. La chaîne électrique live reste sur Power.
+        <p className="text-[13px] text-[#444] max-w-[62ch] mt-1">
+          Quatre indicateurs ISO/IEC 30134 + EED. Chaque carte ouvre la page dédiée.
         </p>
       </div>
+      <MetricsLinks locale={locale} current="/metriques" />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {CARDS.map((c) => (
-          <div key={c.id} className="slds-card p-4 bg-white">
+          <a key={c.id} href={`/${locale}${c.href}`} className="slds-card p-4 bg-white block hover:border-[#0176D3]">
             <div className="text-[11px] uppercase text-[#0176D3] font-bold">{c.title}</div>
             <div className="text-[28px] font-black">{out[c.id] ? out[c.id].value.toFixed(3) : '—'}</div>
             <div className="text-[12px] text-[#706E6B]">{c.formula}</div>
             <div className="text-[12px] mt-1">{out[c.id]?.band || c.hint}</div>
-          </div>
+            <div className="text-[11px] mt-2 text-[#0176D3]">{c.href}</div>
+          </a>
         ))}
       </div>
       <div className="slds-card p-5 bg-white grid sm:grid-cols-2 gap-3">
@@ -68,12 +71,6 @@ export default function MetricsExplorer({ locale }: { locale: string }) {
         </div>
       </div>
       {err && <p className="text-[13px] text-[#C23934]">{err}</p>}
-      <div className="flex flex-wrap gap-4 text-[13px]">
-        <a className="underline" href={`/${locale}/outils/pue`}>Calculatrice PUE</a>
-        <a className="underline" href={`/${locale}/outils/wue`}>Calculatrice WUE</a>
-        <a className="underline" href={`/${locale}/power`}>Chaîne puissance live</a>
-        <a className="underline" href={`/${locale}/eed`}>Dossier EED</a>
-      </div>
     </div>
   );
 }

@@ -1,0 +1,63 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: qinode-power
+    folder: Qinode
+    interval: 1m
+    rules:
+      - uid: qinode-clickhouse-down
+        title: ClickHouse injoignable
+        condition: B
+        for: 2m
+        noDataState: Alerting
+        execErrState: Alerting
+        labels:
+          severity: critical
+        annotations:
+          summary: Le scrape Prometheus job=clickhouse est à 0.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              expr: up{job="clickhouse"}
+              instant: true
+              refId: A
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              refId: B
+              expression: A
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  reducer: { type: last }
+      - uid: qinode-pue-high
+        title: PUE instantané > 1.4
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: grid_kw / rack_kw dépasse 1.4 depuis 5 minutes.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: clickhouse
+            model:
+              rawSql: SELECT toFloat64(grid_power_kw / nullIf(rack_power_kw, 0)) AS pue FROM dcim.power_metrics ORDER BY timestamp DESC LIMIT 1
+              format: 2
+              refId: A
+          - refId: B
+            datasourceUid: "__expr__"
+            model:
+              type: threshold
+              refId: B
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [1.4] }
+                  operator: { type: and }
+                  reducer: { type: last }

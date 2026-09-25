@@ -20,7 +20,7 @@ export default function Hero(){
             <div><div className="text-[11px] uppercase text-[#706E6B]">{t('kpi_nodes')}</div><div className="text-[18px] font-bold">12.4k</div></div>
           </div>
           <div className="mt-6 flex gap-3">
-            <a href={`/${locale}/eed`} className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">Tableau EED</a>
+            <a href={`/${locale}/modules/conformite-eed`} className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">Tableau EED</a>
             <a href={`/${locale}/modules/actifs`} className="px-4 py-2.5 bg-[#F3F3F3] border rounded text-[12px]">{t('cta2')}</a>
           </div>
         </div>

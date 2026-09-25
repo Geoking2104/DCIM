@@ -11,11 +11,14 @@ export class KeycloakService {
     return (process.env.KEYCLOAK_ISSUER || '').replace(/\/$/, '');
   }
 
+  audience() {
+    return process.env.KEYCLOAK_AUDIENCE || 'qinode-graphql';
+  }
+
   jwksUri() {
     if (process.env.KEYCLOAK_JWKS_URI) return process.env.KEYCLOAK_JWKS_URI;
     const iss = this.issuer();
-    if (!iss) return '';
-    return `${iss}/protocol/openid-connect/certs`;
+    return iss ? `${iss}/protocol/openid-connect/certs` : '';
   }
 
   enabled() {
@@ -26,7 +29,7 @@ export class KeycloakService {
     if (!this.jwks) {
       const uri = this.jwksUri();
       if (!uri) throw new UnauthorizedException('KEYCLOAK_JWKS_URI / ISSUER manquant');
-      this.log.log(`JWKS ${uri}`);
+      this.log.log(`JWKS ${uri} aud=${this.audience()}`);
       this.jwks = createRemoteJWKSet(new URL(uri), {
         cooldownDuration: Number(process.env.KEYCLOAK_JWKS_COOLDOWN_MS || 30_000),
         cacheMaxAge: Number(process.env.KEYCLOAK_JWKS_CACHE_MS || 600_000),
@@ -35,33 +38,30 @@ export class KeycloakService {
     return this.jwks;
   }
 
+  private audienceOk(payload: JWTPayload): boolean {
+    const want = this.audience();
+    const aud = payload.aud;
+    const list = Array.isArray(aud) ? aud : aud ? [aud] : [];
+    if (list.includes(want)) return true;
+    const azp = String(payload.azp || '');
+    const acceptAzp = (process.env.KEYCLOAK_ACCEPT_AZP || 'qinode-web').split(',').filter(Boolean);
+    return process.env.KEYCLOAK_REQUIRE_AUD === 'false' && acceptAzp.includes(azp);
+  }
+
   async verify(token?: string): Promise<KeycloakUser> {
     if (!token) throw new UnauthorizedException('Bearer token manquant');
-    const audience = process.env.KEYCLOAK_AUDIENCE || 'qinode-graphql';
     let payload: JWTPayload;
     try {
       const verified = await jwtVerify(token, this.getJwks(), {
         issuer: this.issuer(),
-        audience,
         clockTolerance: Number(process.env.KEYCLOAK_CLOCK_TOLERANCE || 5),
       });
       payload = verified.payload;
-    } catch (err) {
-      try {
-        const verified = await jwtVerify(token, this.getJwks(), {
-          issuer: this.issuer(),
-          clockTolerance: Number(process.env.KEYCLOAK_CLOCK_TOLERANCE || 5),
-        });
-        payload = verified.payload;
-        const aud = payload.aud;
-        const list = Array.isArray(aud) ? aud : aud ? [aud] : [];
-        const azp = String(payload.azp || '');
-        if (!list.includes(audience) && azp !== 'qinode-web' && azp !== audience) {
-          throw err;
-        }
-      } catch {
-        throw new UnauthorizedException('JWT Keycloak invalide (signature / iss / aud)');
-      }
+    } catch {
+      throw new UnauthorizedException('JWT Keycloak invalide (signature / iss)');
+    }
+    if (!this.audienceOk(payload)) {
+      throw new UnauthorizedException(`Audience refusée (attendu ${this.audience()})`);
     }
     const raw = payload as Record<string, unknown>;
     const groups = Array.isArray(raw.groups) ? raw.groups.map(String) : [];

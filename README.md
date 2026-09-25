@@ -40,13 +40,14 @@ flowchart LR
     F --> J[Local AIOps and RAG]
 ```
 
-The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The implemented `dcim-topology-service` currently manages racks and mounted devices and publishes GraphQL subscriptions. The broader compliance, CDU, heat-reuse, and tenant-allocation modules described in the specifications remain product requirements until implemented and tested.
+The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The implemented `dcim-topology-service` currently manages racks and mounted devices and publishes GraphQL subscriptions. The `web/` Next.js app is the bilingual operations UI (platform overview + power-chain supervision). The broader compliance, CDU, heat-reuse, and tenant-allocation modules described in the specifications remain product requirements until implemented and tested.
 
 ## Documentation
 
 - [Functional Requirements Document](docs/functional-requirements.md)
 - [Regulatory Compliance Baseline](docs/regulatory-compliance.md)
 - [Technical Architecture](docs/technical-architecture.md)
+- [Operations Web UI](web/README.md)
 - [Topology Service](dcim-topology-service/README.md)
 - [Multi-pod WebSocket Deployment](dcim-topology-service/deploy/README.md)
 
@@ -54,6 +55,9 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 
 ```bash
 docker compose up -d
+cd web && cp .env.example .env.local && npm install && npm run dev
 ```
+
+The UI listens on [http://localhost:3000](http://localhost:3000) (`/fr` by default, power view at `/fr/power`). It talks to GraphQL at `NEXT_PUBLIC_GRAPHQL_URL` and ClickHouse at `CLICKHOUSE_URL`, and falls back to mock telemetry when those services are offline.
 
 Do not use the example credentials from `docker-compose.yml` in production. Production deployments require managed secrets, encryption, backups, retention policies, tenant isolation, and a validated evidence-export process.

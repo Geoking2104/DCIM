@@ -18,7 +18,8 @@ Barre commune : `components/metrics/MetricsLinks.tsx`
 - `POST /api/metrics/wue` `{ water_liters, it_kwh }`
 - `POST /api/metrics/cue` `{ co2_kg, it_kwh }`
 - `POST /api/metrics/erf` `{ reused_kwh, facility_kwh }`
-- `GET /api/clickhouse/power?rack=` — série 60 min, base de `LivePue` (`grid_kw / rack_kw`)
+- `GET /api/metrics/live?rack=` — PUE instantané `{ ok, value, grid_kw, it_kw, at }`
+- `GET /api/clickhouse/power?rack=` — série 60 min
 
 ## Rack partagé
 

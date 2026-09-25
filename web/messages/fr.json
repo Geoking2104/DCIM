@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "platform": "Plateforme",
+    "power": "Supervision Énergie",
+    "cooling": "Cooling Liquide",
+    "compliance": "Conformité EU",
+    "twin": "Digital Twin",
+    "arch": "Architecture",
+    "demo": "Démo live",
+    "whitepaper": "Livre Blanc"
+  },
+  "hero": {
+    "badge1": "Nouveau • C(2026) 3472 FINAL READY",
+    "badge2": "Remplace 4 outils Straton",
+    "title1": "Le DCIM souverain,",
+    "title2": "piloté par IA.",
+    "title3": "Votre Cognitive Source of Truth.",
+    "subtitle": "Qinode.eu unifie ce que Straton DCIM intègre séparément (Sunbird, Schneider EcoStruxure, NetBox, OpenDCIM) en une plateforme unique graph-first, européenne, air-gapped. Basée sur Geoking2104/DCIM.",
+    "cta1": "Voir la démo live →",
+    "cta2": "docker compose up -d",
+    "kpi_pue": "PUE Live",
+    "kpi_wue": "WUE Classe",
+    "kpi_cooling": "Cooling Flow",
+    "kpi_nodes": "Topology Nodes"
+  },
+  "capabilities": {
+    "eyebrow": "Pattern: Card Grid • SLDS 2",
+    "title": "Ce que Straton explique, Qinode exécute en natif.",
+    "cards": [
+      {"k": "01 Graph-First CSoT", "t": "Blast-radius & dépendances", "d": "Spatial, électrique, cooling, réseau, app, tenant, contractuel. Graph Neo4j."},
+      {"k": "02 Power Chain", "t": "Grid → Cellule batterie", "d": "Grid, groupe, UPS, PDU, rack, device, cellule. Thermal-runaway detect."},
+      {"k": "03 Liquid Cooling", "t": "CDU • Loops • Leaks", "d": "Débit, T supply/return, ΔP, qualité coolant, pompes, fuites."},
+      {"k": "04 Inventaire Straton+", "t": "Mapping cliquable natif", "d": "Inventaire assets, suivi câbles/rack, zones cliquables, réseau→alim, droits."},
+      {"k": "05 Capacity Planning", "t": "Seuils critiques auto", "d": "Espace/power/cooling/bandwidth. Seuils + alertes Straton + prédiction IA."},
+      {"k": "06 3D Digital Twin", "t": "WebGL + Thermal Maps", "d": "Sites, rooms, racks, power paths, liquid loops, heatmaps."},
+      {"k": "07 AIOps Local", "t": "Ollama • Qdrant • Air-gapped", "d": "Maintenance prédictive, anomaly, placement, Copilot NL on-prem."},
+      {"k": "08 Agentless Discovery", "t": "No agent", "d": "gRPC, Modbus TCP, BACnet/IP, eBPF, Redfish, SNMPv3, LLDP/CDP, vision."}
+    ]
+  },
+  "live": {
+    "title": "Operations • Data Table Pattern + Topology",
+    "timeline": "Activity Timeline Pattern",
+    "empty": "Aucune alarme critique non acquittée. Système nominal."
+  },
+  "compliance": {
+    "title": "Conformité EU prête. Pas de greenwashing.",
+    "subtitle": "Regulatory status du repo: conçu pour supporter le reporting, pas remplacer revue légale. C(2026) 3472 final du 21 sept 2026 définit A-G séparés PUE/WUE. Vérif JO requise. Preview interne ≠ label officiel EU."
+  },
+  "arch": {
+    "title": "Architecture locale souveraine",
+    "subtitle": "Edge → Redpanda → ClickHouse + Neo4j → Metrics → Compliance + GraphQL → WebGL + Qdrant/Ollama"
+  },
+  "power": {
+    "title": "Supervision Électrique",
+    "subtitle": "Grid → Cellule batterie • ClickHouse temps réel + Graph CSoT"
+  }
+}

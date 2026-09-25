@@ -1,0 +1,57 @@
+{
+  "nav": {
+    "platform": "Platform",
+    "power": "Power Supervision",
+    "cooling": "Liquid Cooling",
+    "compliance": "EU Compliance",
+    "twin": "Digital Twin",
+    "arch": "Architecture",
+    "demo": "Live demo",
+    "whitepaper": "Whitepaper"
+  },
+  "hero": {
+    "badge1": "New • C(2026) 3472 FINAL READY",
+    "badge2": "Replaces 4 Straton tools",
+    "title1": "Sovereign DCIM,",
+    "title2": "AI-driven.",
+    "title3": "Your Cognitive Source of Truth.",
+    "subtitle": "Qinode.eu unifies what Straton DCIM integrates separately (Sunbird, Schneider EcoStruxure, NetBox, OpenDCIM) into one graph-first, European, air-gapped platform. Based on Geoking2104/DCIM.",
+    "cta1": "View live demo →",
+    "cta2": "docker compose up -d",
+    "kpi_pue": "PUE Live",
+    "kpi_wue": "WUE Class",
+    "kpi_cooling": "Cooling Flow",
+    "kpi_nodes": "Topology Nodes"
+  },
+  "capabilities": {
+    "eyebrow": "Pattern: Card Grid • SLDS 2",
+    "title": "What Straton explains, Qinode runs natively.",
+    "cards": [
+      {"k": "01 Graph-First CSoT", "t": "Blast-radius & dependencies", "d": "Spatial, electrical, cooling, network, app, tenant, contractual. Neo4j graph."},
+      {"k": "02 Power Chain", "t": "Grid → Battery cell", "d": "Grid, generator, UPS, PDU, rack, device, cell. Thermal-runaway detection."},
+      {"k": "03 Liquid Cooling", "t": "CDU • Loops • Leaks", "d": "Flow, supply/return T, ΔP, coolant quality, pumps, leaks."},
+      {"k": "04 Inventory Straton+", "t": "Native clickable mapping", "d": "Full asset inventory, cable tracking per rack, clickable zones, network→power, RBAC."},
+      {"k": "05 Capacity Planning", "t": "Auto critical thresholds", "d": "Space/power/cooling/bandwidth. Thresholds + alerts + AI prediction."},
+      {"k": "06 3D Digital Twin", "t": "WebGL + Thermal Maps", "d": "Sites, rooms, racks, power paths, liquid loops, heatmaps."},
+      {"k": "07 Local AIOps", "t": "Ollama • Qdrant • Air-gapped", "d": "Predictive maintenance, anomaly, placement, on-prem NL Copilot."},
+      {"k": "08 Agentless Discovery", "t": "No agent", "d": "gRPC, Modbus TCP, BACnet/IP, eBPF, Redfish, SNMPv3, LLDP/CDP, vision."}
+    ]
+  },
+  "live": {
+    "title": "Operations • Data Table Pattern + Topology",
+    "timeline": "Activity Timeline Pattern",
+    "empty": "No unacknowledged critical alarm. System nominal."
+  },
+  "compliance": {
+    "title": "EU-ready compliance. No greenwashing.",
+    "subtitle": "Designed to support reporting, not replace legal review. C(2026) 3472 final 21 Sep 2026 defines separate A-G PUE/WUE. OJ verification required. Internal preview ≠ official EU label."
+  },
+  "arch": {
+    "title": "Sovereign local architecture",
+    "subtitle": "Edge → Redpanda → ClickHouse + Neo4j → Metrics → Compliance + GraphQL → WebGL + Qdrant/Ollama"
+  },
+  "power": {
+    "title": "Power Supervision",
+    "subtitle": "Grid → Battery Cell • Real-time ClickHouse + Graph CSoT"
+  }
+}

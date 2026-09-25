@@ -1,15 +1,15 @@
 import Header from '@/components/Header';
 import Providers from '@/components/Providers';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
+import AlertInbox from '@/components/metrics/AlertInbox';
 
 export const dynamic = 'force-dynamic';
 
 const ROWS = [
   ['Collecte', 'Telegraf', 'SNMP + Redfish'],
   ['Historique', 'ClickHouse', 'dcim.power_metrics'],
-  ['Alerte', 'Prometheus', 'http://localhost:9090'],
-  ['Visualisation', 'Grafana', 'http://localhost:3001'],
-  ['Graphe', 'Neo4j', 'inventaire']
+  ['Alerte', 'Grafana + Prometheus', 'webhook /api/alerts'],
+  ['Visualisation', 'Grafana', 'http://localhost:3001']
 ];
 
 export default function SupervisionPage({ params: { locale } }: { params: { locale: string } }) {
@@ -30,7 +30,7 @@ export default function SupervisionPage({ params: { locale } }: { params: { loca
             ))}
           </tbody>
         </table>
-        <p className="text-[13px]">Grafana : dossier Qinode · dashboard Puissance &amp; PUE. Compte admin, mot de passe via GRAFANA_PASSWORD.</p>
+        <AlertInbox />
       </div>
     </Providers>
   );

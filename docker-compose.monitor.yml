@@ -19,6 +19,7 @@ services:
     container_name: dcim-prometheus
     volumes:
       - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/prometheus-rules.yml:/etc/prometheus/rules.yml:ro
     ports:
       - "9090:9090"
     profiles: ["monitor", "alert"]
@@ -36,6 +37,14 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
       GF_SERVER_ROOT_URL: http://localhost:3001
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_SMTP_ENABLED: ${GF_SMTP_ENABLED:-false}
+      GF_SMTP_HOST: ${GF_SMTP_HOST:-}
+      GF_SMTP_USER: ${GF_SMTP_USER:-}
+      GF_SMTP_PASSWORD: ${GF_SMTP_PASSWORD:-}
+      GF_SMTP_FROM_ADDRESS: ${GF_SMTP_FROM_ADDRESS:-grafana@qinode.eu}
+      GRAFANA_ALERT_WEBHOOK: ${GRAFANA_ALERT_WEBHOOK:-http://host.docker.internal:4000/alerts}
+      GRAFANA_ALERT_EMAIL: ${GRAFANA_ALERT_EMAIL:-ops@qinode.eu}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro

@@ -4,7 +4,11 @@ import { Neo4jService } from '../neo4j/neo4j.service';
 import { DiscoverNetworkInput } from './dto/discover-network.input';
 import { ImportPatchesInput } from './dto/import-patches.input';
 import { BlastRadius, ImpactHop } from './models/impact.model';
-import { DiscoveryReport, NetworkLink, Port } from './models/port.model';
+import { DiscoveryReport, NetworkLink, PatchConflict, Port } from './models/port.model';
+
+type LinkAttempt =
+  | { kind: 'created' | 'exists'; link: NetworkLink }
+  | { kind: 'conflict'; conflict: PatchConflict };
 
 @Injectable()
 export class NetworkService {
@@ -18,42 +22,39 @@ export class NetworkService {
       { id: input.rackId },
     );
     const list = devices.records.map((r) => ({ id: r.get('id') as string, name: String(r.get('name')) }));
-    if (!list.length) {
-      return { rackId: input.rackId, source: input.source || 'lldp-sim', portsCreated: 0, linksCreated: 0, links: [] };
-    }
+    const empty = this.emptyReport(input.rackId, input.source || 'lldp-sim');
+    if (!list.length) return empty;
     const tor = list.find((d) => /tor|sw|switch/i.test(d.name)) || list[list.length - 1];
-    let portsCreated = 0;
-    let linksCreated = 0;
-    const links: NetworkLink[] = [];
     let i = 2;
     for (const dev of list.filter((d) => d.id !== tor.id)) {
       const nic = await this.ensurePort(dev.id, 'nic0', '25G');
       const swp = await this.ensurePort(tor.id, `Eth1/${i}`, '25G');
-      portsCreated += Number(nic.created) + Number(swp.created);
-      const linked = await this.ensureLink(swp.port.id, nic.port.id, input.source || 'lldp-sim');
-      if (linked.created) linksCreated += 1;
-      links.push(linked.link);
+      empty.portsCreated += Number(nic.created) + Number(swp.created);
+      this.applyAttempt(empty, await this.attemptLink(swp.port, nic.port, input.source || 'lldp-sim'));
       i += 1;
     }
-    return { rackId: input.rackId, source: input.source || 'lldp-sim', portsCreated, linksCreated, links };
+    return empty;
   }
 
   async importPatches(input: ImportPatchesInput): Promise<DiscoveryReport> {
-    let portsCreated = 0;
-    let linksCreated = 0;
-    const links: NetworkLink[] = [];
+    const report = this.emptyReport(input.rackId, 'csv-patch');
     for (const row of input.rows) {
       const aDev = await this.resolveDevice(input.rackId, row.aDevice);
       const bDev = await this.resolveDevice(input.rackId, row.bDevice);
-      if (!aDev || !bDev) continue;
+      if (!aDev || !bDev) {
+        report.conflicts.push({
+          reason: `device introuvable (${row.aDevice} / ${row.bDevice})`,
+          wantedA: { id: row.aDevice, name: row.aPort, deviceId: row.aDevice },
+          wantedB: { id: row.bDevice, name: row.bPort, deviceId: row.bDevice },
+        });
+        continue;
+      }
       const a = await this.ensurePort(aDev, row.aPort, 'unknown');
       const b = await this.ensurePort(bDev, row.bPort, 'unknown');
-      portsCreated += Number(a.created) + Number(b.created);
-      const linked = await this.ensureLink(a.port.id, b.port.id, 'csv-patch');
-      if (linked.created) linksCreated += 1;
-      links.push(linked.link);
+      report.portsCreated += Number(a.created) + Number(b.created);
+      this.applyAttempt(report, await this.attemptLink(a.port, b.port, 'csv-patch'));
     }
-    return { rackId: input.rackId, source: 'csv-patch', portsCreated, linksCreated, links };
+    return report;
   }
 
   async linksForRack(rackId: string): Promise<NetworkLink[]> {
@@ -94,6 +95,73 @@ export class NetworkService {
     return { originId, hops };
   }
 
+  private emptyReport(rackId: string, source: string): DiscoveryReport {
+    return { rackId, source, portsCreated: 0, linksCreated: 0, links: [], conflicts: [] };
+  }
+
+  private applyAttempt(report: DiscoveryReport, attempt: LinkAttempt) {
+    if (attempt.kind === 'conflict') report.conflicts.push(attempt.conflict);
+    else {
+      if (attempt.kind === 'created') report.linksCreated += 1;
+      report.links.push(attempt.link);
+    }
+  }
+
+  private async peerOf(portId: string): Promise<{ port: Port; via: string } | null> {
+    const r = await this.neo4j.read(
+      `MATCH (a:Port {id: $portId})-[p:PATCHED_TO]-(b:Port) RETURN b, p.via AS via LIMIT 1`,
+      { portId },
+    );
+    if (!r.records.length) return null;
+    return { port: this.mapPort(r.records[0].get('b').properties), via: r.records[0].get('via') || 'patch' };
+  }
+
+  private async attemptLink(a: Port, b: Port, via: string): Promise<LinkAttempt> {
+    const same = await this.neo4j.read(
+      `MATCH (x:Port {id: $a})-[p:PATCHED_TO]-(y:Port {id: $b}) RETURN p`,
+      { a: a.id, b: b.id },
+    );
+    if (same.records.length) {
+      return {
+        kind: 'exists',
+        link: { id: same.records[0].get('p').properties?.id || `${a.id}-${b.id}`, via, a, b },
+      };
+    }
+    const peerA = await this.peerOf(a.id);
+    const peerB = await this.peerOf(b.id);
+    if (peerA && peerA.port.id !== b.id) {
+      return {
+        kind: 'conflict',
+        conflict: {
+          reason: `${a.deviceId}:${a.name} déjà brassé vers ${peerA.port.deviceId}:${peerA.port.name}`,
+          wantedA: a,
+          wantedB: b,
+          existingPeer: peerA.port,
+          existingVia: peerA.via,
+        },
+      };
+    }
+    if (peerB && peerB.port.id !== a.id) {
+      return {
+        kind: 'conflict',
+        conflict: {
+          reason: `${b.deviceId}:${b.name} déjà brassé vers ${peerB.port.deviceId}:${peerB.port.name}`,
+          wantedA: a,
+          wantedB: b,
+          existingPeer: peerB.port,
+          existingVia: peerB.via,
+        },
+      };
+    }
+    const id = randomUUID();
+    await this.neo4j.write(
+      `MATCH (x:Port {id: $a}), (y:Port {id: $b})
+       CREATE (x)-[p:PATCHED_TO {id: $id, via: $via, at: datetime()}]->(y)`,
+      { a: a.id, b: b.id, id, via },
+    );
+    return { kind: 'created', link: { id, via, a, b } };
+  }
+
   private async resolveDevice(rackId: string, key: string): Promise<string | null> {
     const r = await this.neo4j.read(
       `MATCH (d:Device)-[:INSTALLED_IN]->(:Rack {id: $rackId})
@@ -123,35 +191,5 @@ export class NetworkService {
       { deviceId, id, name, speed },
     );
     return { created: true, port: this.mapPort(written.records[0].get('p').properties) };
-  }
-
-  private async ensureLink(aId: string, bId: string, via: string) {
-    const existing = await this.neo4j.read(
-      `MATCH (a:Port {id: $aId})-[p:PATCHED_TO]-(b:Port {id: $bId}) RETURN a, b, p`,
-      { aId, bId },
-    );
-    if (existing.records.length) {
-      const rec = existing.records[0];
-      return {
-        created: false,
-        link: {
-          id: rec.get('p').properties.id || `${aId}-${bId}`,
-          via: rec.get('p').properties.via || via,
-          a: this.mapPort(rec.get('a').properties),
-          b: this.mapPort(rec.get('b').properties),
-        },
-      };
-    }
-    const id = randomUUID();
-    const written = await this.neo4j.write(
-      `MATCH (a:Port {id: $aId}), (b:Port {id: $bId})
-       CREATE (a)-[p:PATCHED_TO {id: $id, via: $via, at: datetime()}]->(b) RETURN a, b, p`,
-      { aId, bId, id, via },
-    );
-    const rec = written.records[0];
-    return {
-      created: true,
-      link: { id, via, a: this.mapPort(rec.get('a').properties), b: this.mapPort(rec.get('b').properties) },
-    };
   }
 }

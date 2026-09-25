@@ -31,6 +31,24 @@ export class NetworkLink {
 }
 
 @ObjectType()
+export class PatchConflict {
+  @Field()
+  reason!: string;
+
+  @Field(() => Port)
+  wantedA!: Port;
+
+  @Field(() => Port)
+  wantedB!: Port;
+
+  @Field(() => Port, { nullable: true })
+  existingPeer?: Port;
+
+  @Field({ nullable: true })
+  existingVia?: string;
+}
+
+@ObjectType()
 export class DiscoveryReport {
   @Field()
   rackId!: string;
@@ -46,4 +64,7 @@ export class DiscoveryReport {
 
   @Field(() => [NetworkLink])
   links!: NetworkLink[];
+
+  @Field(() => [PatchConflict])
+  conflicts!: PatchConflict[];
 }

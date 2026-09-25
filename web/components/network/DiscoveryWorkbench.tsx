@@ -8,7 +8,8 @@ const DISCOVER = gql`
   mutation DiscoverNetwork($input: DiscoverNetworkInput!) {
     discoverNetwork(input: $input) {
       rackId source portsCreated linksCreated
-      links { id via a { name deviceId speed } b { name deviceId speed } }
+      links { id via a { name deviceId } b { name deviceId } }
+      conflicts { reason existingVia wantedA { name deviceId } wantedB { name deviceId } existingPeer { name deviceId } }
     }
   }
 `;
@@ -17,11 +18,12 @@ const IMPORT = gql`
     importPatches(input: $input) {
       rackId source portsCreated linksCreated
       links { id via a { name deviceId } b { name deviceId } }
+      conflicts { reason existingVia wantedA { name deviceId } wantedB { name deviceId } existingPeer { name deviceId } }
     }
   }
 `;
 
-const SAMPLE = 'aDevice,aPort,bDevice,bPort\ntor-c05,Eth1/2,srv-gpu-12,nic0\ntor-c05,Eth1/3,sto-nvme-03,nic0\n';
+const SAMPLE = 'aDevice,aPort,bDevice,bPort\ntor-c05,Eth1/2,srv-gpu-12,nic0\n';
 
 export default function DiscoveryWorkbench({ locale }: { locale: string }) {
   const { data } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
@@ -35,10 +37,7 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
   const report = imported?.importPatches || out?.discoverNetwork;
 
   function parseCsv(text: string) {
-    return text
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l && !l.toLowerCase().startsWith('adevice'))
+    return text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.toLowerCase().startsWith('adevice'))
       .map((l) => {
         const [aDevice, aPort, bDevice, bPort] = l.split(',').map((s) => s.trim());
         return { aDevice, aPort, bDevice, bPort };
@@ -51,6 +50,7 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
       <div>
         <a href={`/${locale}/outils`} className="text-[12px] text-[#0176D3]">← Outils</a>
         <h1 className="text-[28px] font-extrabold mt-2">Outils de découverte réseau</h1>
+        <p className="text-[13px] text-[#444]">Un port déjà brassé ailleurs = conflit, pas d’écrasement.</p>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {DISCOVERY_TOOLS.map((t) => (
@@ -72,7 +72,6 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
               {loading ? 'Collecte…' : `Exécuter ${spec.title}`}
             </button>
           )}
-          <a href={`/${locale}/graphe-reseau`} className="px-4 py-2 rounded border text-[13px]">Graphe</a>
         </div>
         {tool === 'csv' && (
           <div className="space-y-2">
@@ -83,7 +82,19 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
           </div>
         )}
         {(error || importErr) && <p className="text-[13px] text-[#C23934]">{(error || importErr)?.message}</p>}
-        {report && <p className="text-[13px]">{report.source} · +{report.portsCreated} ports · +{report.linksCreated} liens</p>}
+        {report && (
+          <p className="text-[13px]">{report.source} · +{report.linksCreated} liens · {report.conflicts?.length || 0} conflits</p>
+        )}
+        {report?.conflicts?.length > 0 && (
+          <ul className="text-[13px] space-y-1 bg-[#FFF0F0] border border-[#E5C1C1] rounded p-3">
+            {report.conflicts.map((c: any, i: number) => (
+              <li key={i}>
+                {c.reason}
+                {c.existingPeer && <span className="text-[#706E6B]"> · actuel {c.existingPeer.deviceId}:{c.existingPeer.name} ({c.existingVia})</span>}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

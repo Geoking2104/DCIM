@@ -1,0 +1,77 @@
+version: "3.8"
+
+services:
+  # --- GRAPH DATABASE (Source of Truth) ---
+  graph-db:
+    image: neo4j:5.12-community
+    container_name: dcim-graph-db
+    ports:
+      - "7474:7474" # HTTP Browser
+      - "7687:7687" # Bolt Protocol
+    environment:
+      - NEO4J_AUTH=neo4j/dcim_secure_password
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+
+  # --- TIME-SERIES DATABASE (Telemetry & BMS) ---
+  timeseries-db:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: dcim-timeseries-db
+    ports:
+      - "8123:8123" # HTTP Interface
+      - "9000:9000" # Native Client
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+
+  # --- STREAM BROKER (Telemetry Event Bus) ---
+  event-bus:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.2.1
+    container_name: dcim-event-bus
+    ports:
+      - "9092:9092" # Kafka API Port
+      - "9644:9644" # Admin API
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --overprovisioned
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
+      - --advertise-kafka-addr
+      - PLAINTEXT://event-bus:29092,OUTSIDE://localhost:9092
+
+  # --- VECTOR DATABASE (Local RAG) ---
+  vector-db:
+    image: qdrant/qdrant:v1.6.1
+    container_name: dcim-vector-db
+    ports:
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC Interface
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  # --- LOCAL AIR-GAPPED LLM INFERENCE ---
+  ai-engine:
+    image: ollama/ollama:latest
+    container_name: dcim-ai-engine
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  neo4j_data:
+  clickhouse_data:
+  qdrant_data:
+  ollama_data:

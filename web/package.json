@@ -2,7 +2,7 @@
   "name": "dcim-web",
   "version": "1.0.0",
   "private": true,
-  "description": "Qinode.eu / DCIM Next.js operations UI",
+  "description": "Qinode DCIM Next.js UI — marketing, PUE/WUE/CUE/ERF, power chain, EED preview, Grafana alert inbox",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",

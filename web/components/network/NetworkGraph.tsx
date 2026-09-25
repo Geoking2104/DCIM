@@ -35,12 +35,18 @@ export default function NetworkGraph({ locale }: { locale: string }) {
   const { data: racksData } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
   const racks = racksData?.racks || [];
   const [rackId, setRackId] = useState('');
+  const [isolate, setIsolate] = useState(Boolean(focusA));
   const [origin, setOrigin] = useState<string | undefined>(focusA);
   const [load, { data, loading }] = useLazyQuery(LINKS, { fetchPolicy: 'no-cache' });
   const [impact, { data: impactData }] = useLazyQuery(IMPACT, { fetchPolicy: 'no-cache' });
   const live = Boolean(data?.networkLinks);
   const links: LinkN[] = live ? data.networkLinks : DEMO;
-  const layout = useMemo(() => layoutGraph(links), [links]);
+  const focused = useMemo(() => {
+    if (!isolate || (!focusA && !focusB)) return links;
+    const next = links.filter((l) => [l.a.id, l.b.id].includes(focusA || '') || [l.a.id, l.b.id].includes(focusB || ''));
+    return next.length ? next : links;
+  }, [links, isolate, focusA, focusB]);
+  const layout = useMemo(() => layoutGraph(focused), [focused]);
   const hops = impactData?.blastRadius?.hops || [];
   const hot = new Set<string>([
     ...hops.map((h: any) => h.id),
@@ -68,6 +74,11 @@ export default function NetworkGraph({ locale }: { locale: string }) {
           </p>
         </div>
         <div className="flex gap-2 items-center">
+          {focusA && (
+            <button type="button" onClick={() => setIsolate((v) => !v)} className={`px-3 py-2 rounded border text-[13px] ${isolate ? 'bg-[#CA8501] text-white border-[#CA8501]' : 'bg-white'}`}>
+              {isolate ? 'Voisinage' : 'Tout le graphe'}
+            </button>
+          )}
           <select className="border rounded px-3 py-2 text-[13px]" value={rackId} onChange={(e) => setRackId(e.target.value)}>
             <option value="">Rack…</option>
             {racks.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}

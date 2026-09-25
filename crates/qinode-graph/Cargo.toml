@@ -1,0 +1,10 @@
+[package]
+name = "qinode-graph"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+async-graphql = "7"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["sync"] }
+uuid = { version = "1", features = ["v4"] }

@@ -1,3 +1,4 @@
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -5,6 +6,7 @@ use axum::{
     Json, Router,
 };
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
+use qinode_graph::{schema as graph_schema, AppSchema};
 use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
 use qinode_timeseries::{ClickHouse, PowerSample};
 use serde::Serialize;
@@ -16,12 +18,14 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 struct AppState {
     nest_graphql: String,
     ch: Arc<ClickHouse>,
+    gql: AppSchema,
 }
 
 #[derive(Serialize)]
 struct Health {
     service: &'static str,
     rust: bool,
+    graphql: bool,
     redfish: bool,
     clickhouse: String,
     nest_graphql: String,
@@ -40,10 +44,12 @@ async fn main() {
         nest_graphql: std::env::var("NEST_GRAPHQL_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:4000/graphql".into()),
         ch: Arc::new(ch),
+        gql: graph_schema(),
     };
 
     let app = Router::new()
         .route("/health", get(health))
+        .route("/graphql", post(graphql_handler))
         .route("/v1/metrics/pue", post(calc_pue))
         .route("/v1/metrics/wue", post(calc_wue))
         .route("/v1/redfish/snapshot", post(redfish_snapshot))
@@ -65,10 +71,15 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
     Json(Health {
         service: "qinode-gateway",
         rust: true,
+        graphql: true,
         redfish: true,
         clickhouse: std::env::var("CLICKHOUSE_URL").unwrap_or_else(|_| "http://127.0.0.1:8123".into()),
         nest_graphql: state.nest_graphql,
     })
+}
+
+async fn graphql_handler(State(state): State<AppState>, req: GraphQLRequest) -> GraphQLResponse {
+    state.gql.execute(req.into_inner()).await.into()
 }
 
 async fn calc_pue(Json(input): Json<PueInput>) -> Result<Json<MetricPreview>, (StatusCode, String)> {

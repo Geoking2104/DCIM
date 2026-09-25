@@ -25,6 +25,7 @@ export default function PlateformePage({ params: { locale } }: { params: { local
             </a>
           ))}
           <a href={`/${locale}/modules/conformite-eed`} className="px-3 py-1 bg-[#032D60] text-white rounded">EED 2024/1364</a>
+          <a href={`/${locale}/topologie`} className="px-3 py-1 bg-[#0176D3] text-white rounded">Topologie rack</a>
         </div>
       </div>
       <Capabilities/>
@@ -41,6 +42,7 @@ export default function PlateformePage({ params: { locale } }: { params: { local
         <div className="max-w-[1440px] mx-auto px-6 py-6 text-[11px] text-[#706E6B] flex flex-wrap gap-4">
           <span>© 2026 Qinode.eu</span>
           <a href={`/${locale}`} className="underline">Accueil</a>
+          <a href={`/${locale}/topologie`} className="underline">Topologie</a>
           <a href={`/${locale}/modules/conformite-eed`} className="underline">Tableau EED</a>
         </div>
       </footer>

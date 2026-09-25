@@ -21,7 +21,7 @@ export default function Hero(){
           </div>
           <div className="mt-6 flex gap-3">
             <a href={`/${locale}/modules/conformite-eed`} className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">Tableau EED</a>
-            <a href={`/${locale}/modules/actifs`} className="px-4 py-2.5 bg-[#F3F3F3] border rounded text-[12px]">{t('cta2')}</a>
+            <a href={`/${locale}/power`} className="px-4 py-2.5 bg-[#F3F3F3] border rounded text-[12px]">Chaîne électrique</a>
           </div>
         </div>
         <div className="relative">

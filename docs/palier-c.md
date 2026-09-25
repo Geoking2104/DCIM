@@ -1,25 +1,26 @@
-# Palier C — GraphQL Rust
+# Palier C — GraphQL Rust + bascule Next
 
-`POST http://127.0.0.1:8088/graphql`
+## Bascule
 
-Store mémoire (pas encore Neo4j). Nest reste la source de vérité prod jusqu’au flag `GRAPHQL_UPSTREAM=rust`.
-
-```graphql
-mutation {
-  createRack(input: { name: "RACK-05", heightU: 42, siteId: "site-paris-01" }) {
-    id name heightU
-  }
-}
-
-mutation {
-  createDeviceAndMount(input: {
-    name: "SRV-01", model: "R760", startU: 10, heightU: 2, rackId: "…"
-  }) { id startU }
-}
-
-mutation {
-  moveDevice(input: { deviceId: "…", rackId: "…", startU: 20 }) { id startU rackId }
-}
+```
+GRAPHQL_UPSTREAM=nest   # défaut, Neo4j + Keycloak
+GRAPHQL_UPSTREAM=rust   # sidecar :8088/graphql (mémoire)
 ```
 
-async-graphql expose `heightU` / `startU` (camelCase) malgré les champs Rust `height_u`.
+Le proxy `web/app/api/graphql` essaie la cible puis l’autre (header `x-graphql-upstream`).
+
+## Rust
+
+```bash
+cargo run -p qinode-gateway
+curl -s localhost:8088/graphql -H 'content-type: application/json' \
+  -d '{"query":"mutation { createRack(input:{name:\"RACK-05\",heightU:42,siteId:\"paris\"}){id name}}"}'
+```
+
+Mêmes noms de champs camelCase que Nest. Store mémoire : redémarrage = vide.
+
+## Suite
+
+1. `neo4rs` à la place du HashMap
+2. JWKS sur `/graphql` Rust
+3. Subscriptions `rackUpdated` (graphql-ws)

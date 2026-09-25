@@ -1,8 +1,9 @@
 'use client';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, useSubscription, gql } from '@apollo/client';
 import { useMemo } from 'react';
 import { classifyGraphQLError } from '@/lib/graphqlErrors';
 import { GRAPHQL_URL } from '@/lib/graphql';
+import { RACK_UPDATED } from '@/lib/topologySubscriptions';
 import GraphQLStatus from '@/components/GraphQLStatus';
 import OptimizedImage from '@/components/OptimizedImage';
 
@@ -20,17 +21,18 @@ const RACKS_QUERY = gql`
 
 const mock = [
   {id:'RACK-01', name:'Row A / R01', heightU:42, siteId:'PAR-1', powerLoad:0.21, capacity:0.34, pue:1.18, temperature:38, status:'Active', devices:[] as any[]},
-  {id:'RACK-02', name:'Row A / R02', heightU:42, siteId:'PAR-1', powerLoad:0.28, capacity:0.34, pue:1.22, temperature:42, status:'Active', devices:[]},
   {id:'RACK-05', name:'Row C / R05', heightU:42, siteId:'PAR-1', powerLoad:0.31, capacity:0.34, pue:1.41, temperature:67.4, status:'Hotspot', devices:[]},
-  {id:'RACK-06', name:'Row C / R06', heightU:42, siteId:'PAR-1', powerLoad:0.19, capacity:0.34, pue:1.15, temperature:36, status:'Active', devices:[]},
 ];
 
 export default function LiveRacks(){
-  const { data, error, loading } = useQuery(RACKS_QUERY, {
-    pollInterval: 15000,
+  const { data, error, loading, refetch } = useQuery(RACKS_QUERY, {
+    pollInterval: 30000,
     errorPolicy: 'all',
     fetchPolicy: 'no-cache',
     ssr: false
+  });
+  useSubscription(RACK_UPDATED, {
+    onData: () => { void refetch(); }
   });
 
   const classified = useMemo(
@@ -43,8 +45,6 @@ export default function LiveRacks(){
     ? data.racks.map((r: any) => ({
         ...r,
         status: (r.devices?.length || 0) > 0 ? 'Active' : 'Empty',
-        temperature: '—',
-        pue: '—',
         powerLoad: r.devices?.length || 0,
         capacity: r.heightU
       }))

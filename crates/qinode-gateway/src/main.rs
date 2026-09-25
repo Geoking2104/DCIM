@@ -1,4 +1,4 @@
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -26,6 +26,7 @@ struct Health {
     service: &'static str,
     rust: bool,
     graphql: bool,
+    graphql_ws: bool,
     redfish: bool,
     clickhouse: String,
     nest_graphql: String,
@@ -39,17 +40,19 @@ async fn main() {
 
     let ch = ClickHouse::from_env();
     let _ = ch.ensure_schema().await;
+    let gql = graph_schema();
 
     let state = AppState {
         nest_graphql: std::env::var("NEST_GRAPHQL_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:4000/graphql".into()),
         ch: Arc::new(ch),
-        gql: graph_schema(),
+        gql: gql.clone(),
     };
 
     let app = Router::new()
         .route("/health", get(health))
         .route("/graphql", post(graphql_handler))
+        .route_service("/graphql/ws", GraphQLSubscription::new(gql))
         .route("/v1/metrics/pue", post(calc_pue))
         .route("/v1/metrics/wue", post(calc_wue))
         .route("/v1/redfish/snapshot", post(redfish_snapshot))
@@ -62,7 +65,7 @@ async fn main() {
         .unwrap_or_else(|_| "0.0.0.0:8088".into())
         .parse()
         .expect("LISTEN");
-    tracing::info!(%addr, "qinode-gateway");
+    tracing::info!(%addr, "qinode-gateway graphql-ws /graphql/ws");
     let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
     axum::serve(listener, app).await.expect("serve");
 }
@@ -72,6 +75,7 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
         service: "qinode-gateway",
         rust: true,
         graphql: true,
+        graphql_ws: true,
         redfish: true,
         clickhouse: std::env::var("CLICKHOUSE_URL").unwrap_or_else(|_| "http://127.0.0.1:8123".into()),
         nest_graphql: state.nest_graphql,
@@ -83,34 +87,14 @@ async fn graphql_handler(State(state): State<AppState>, req: GraphQLRequest) -> 
 }
 
 async fn calc_pue(Json(input): Json<PueInput>) -> Result<Json<MetricPreview>, (StatusCode, String)> {
-    pue(input)
-        .map(Json)
-        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
+    pue(input).map(Json).map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
 }
-
 async fn calc_wue(Json(input): Json<WueInput>) -> Result<Json<MetricPreview>, (StatusCode, String)> {
-    wue(input)
-        .map(Json)
-        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
+    wue(input).map(Json).map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
 }
-
-async fn redfish_snapshot(
-    Json(target): Json<BmcTarget>,
-) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
-    snapshot(target)
-        .await
-        .map(Json)
-        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
+async fn redfish_snapshot(Json(target): Json<BmcTarget>) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
+    snapshot(target).await.map(Json).map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
 }
-
-async fn insert_power(
-    State(state): State<AppState>,
-    Json(row): Json<PowerSample>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    state
-        .ch
-        .insert_power(&row)
-        .await
-        .map(|_| Json(serde_json::json!({"ok": true, "rack_id": row.rack_id})))
-        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
+async fn insert_power(State(state): State<AppState>, Json(row): Json<PowerSample>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    state.ch.insert_power(&row).await.map(|_| Json(serde_json::json!({"ok": true, "rack_id": row.rack_id}))).map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
 }

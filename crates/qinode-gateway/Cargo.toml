@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 qinode-core = { path = "../qinode-core" }
 qinode-ingest = { path = "../qinode-ingest" }
+qinode-timeseries = { path = "../qinode-timeseries" }
 axum = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -5,6 +5,7 @@ import { DiscoverNetworkInput } from './dto/discover-network.input';
 import { ImportPatchesInput } from './dto/import-patches.input';
 import { ResolvePatchConflictInput } from './dto/resolve-conflict.input';
 import { BlastRadius, ImpactHop } from './models/impact.model';
+import { PatchDecision } from './models/patch-decision.model';
 import { DiscoveryReport, NetworkLink, PatchConflict, Port } from './models/port.model';
 
 type LinkAttempt =
@@ -58,29 +59,31 @@ export class NetworkService {
     return report;
   }
 
-  async resolveConflict(input: ResolvePatchConflictInput): Promise<DiscoveryReport> {
+  async resolveConflict(input: ResolvePatchConflictInput, actor: string): Promise<DiscoveryReport> {
     const report = this.emptyReport('resolved', input.via || 'manual');
     const a = await this.portById(input.wantedAId);
     const b = await this.portById(input.wantedBId);
     if (!a || !b) throw new NotFoundException('Port du conflit introuvable');
+    await this.logDecision(input.action, actor, a.id, b.id);
     if (input.action === 'keep') {
-      report.conflicts.push({
-        reason: 'conservé tel quel',
-        wantedA: a,
-        wantedB: b,
-      });
+      report.conflicts.push({ reason: 'conservé tel quel', wantedA: a, wantedB: b });
       return report;
     }
-    await this.neo4j.write(
-      `MATCH (x:Port {id: $a})-[p:PATCHED_TO]-() DELETE p`,
-      { a: a.id },
-    );
-    await this.neo4j.write(
-      `MATCH (y:Port {id: $b})-[p:PATCHED_TO]-() DELETE p`,
-      { b: b.id },
-    );
+    await this.neo4j.write(`MATCH (x:Port {id: $a})-[p:PATCHED_TO]-() DELETE p`, { a: a.id });
+    await this.neo4j.write(`MATCH (y:Port {id: $b})-[p:PATCHED_TO]-() DELETE p`, { b: b.id });
     this.applyAttempt(report, await this.attemptLink(a, b, input.via || 'conflict-replace'));
     return report;
+  }
+
+  async listDecisions(): Promise<PatchDecision[]> {
+    const r = await this.neo4j.read(
+      `MATCH (d:PatchDecision) RETURN d ORDER BY d.at DESC LIMIT 50`,
+      {},
+    );
+    return r.records.map((rec) => {
+      const p = rec.get('d').properties;
+      return { id: p.id, action: p.action, actor: p.actor, at: String(p.at), aId: p.aId, bId: p.bId };
+    });
   }
 
   async linksForRack(rackId: string): Promise<NetworkLink[]> {
@@ -121,6 +124,15 @@ export class NetworkService {
     return { originId, hops };
   }
 
+  private async logDecision(action: string, actor: string, aId: string, bId: string) {
+    const id = randomUUID();
+    const at = new Date().toISOString();
+    await this.neo4j.write(
+      `CREATE (d:PatchDecision {id: $id, action: $action, actor: $actor, at: $at, aId: $aId, bId: $bId})`,
+      { id, action, actor, at, aId, bId },
+    );
+  }
+
   private emptyReport(rackId: string, source: string): DiscoveryReport {
     return { rackId, source, portsCreated: 0, linksCreated: 0, links: [], conflicts: [] };
   }
@@ -153,10 +165,7 @@ export class NetworkService {
       { a: a.id, b: b.id },
     );
     if (same.records.length) {
-      return {
-        kind: 'exists',
-        link: { id: same.records[0].get('p').properties?.id || `${a.id}-${b.id}`, via, a, b },
-      };
+      return { kind: 'exists', link: { id: same.records[0].get('p').properties?.id || `${a.id}-${b.id}`, via, a, b } };
     }
     const peerA = await this.peerOf(a.id);
     const peerB = await this.peerOf(b.id);
@@ -165,10 +174,7 @@ export class NetworkService {
         kind: 'conflict',
         conflict: {
           reason: `${a.deviceId}:${a.name} déjà brassé vers ${peerA.port.deviceId}:${peerA.port.name}`,
-          wantedA: a,
-          wantedB: b,
-          existingPeer: peerA.port,
-          existingVia: peerA.via,
+          wantedA: a, wantedB: b, existingPeer: peerA.port, existingVia: peerA.via,
         },
       };
     }
@@ -177,17 +183,13 @@ export class NetworkService {
         kind: 'conflict',
         conflict: {
           reason: `${b.deviceId}:${b.name} déjà brassé vers ${peerB.port.deviceId}:${peerB.port.name}`,
-          wantedA: a,
-          wantedB: b,
-          existingPeer: peerB.port,
-          existingVia: peerB.via,
+          wantedA: a, wantedB: b, existingPeer: peerB.port, existingVia: peerB.via,
         },
       };
     }
     const id = randomUUID();
     await this.neo4j.write(
-      `MATCH (x:Port {id: $a}), (y:Port {id: $b})
-       CREATE (x)-[p:PATCHED_TO {id: $id, via: $via, at: datetime()}]->(y)`,
+      `MATCH (x:Port {id: $a}), (y:Port {id: $b}) CREATE (x)-[p:PATCHED_TO {id: $id, via: $via, at: datetime()}]->(y)`,
       { a: a.id, b: b.id, id, via },
     );
     return { kind: 'created', link: { id, via, a, b } };
@@ -195,8 +197,7 @@ export class NetworkService {
 
   private async resolveDevice(rackId: string, key: string): Promise<string | null> {
     const r = await this.neo4j.read(
-      `MATCH (d:Device)-[:INSTALLED_IN]->(:Rack {id: $rackId})
-       WHERE d.id = $key OR d.name = $key RETURN d.id AS id LIMIT 1`,
+      `MATCH (d:Device)-[:INSTALLED_IN]->(:Rack {id: $rackId}) WHERE d.id = $key OR d.name = $key RETURN d.id AS id LIMIT 1`,
       { rackId, key },
     );
     return r.records[0]?.get('id') || null;

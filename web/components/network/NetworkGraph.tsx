@@ -1,6 +1,7 @@
 'use client';
 import { gql, useLazyQuery, useQuery } from '@apollo/client';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const RACKS = gql`query GRacks { racks { id name } }`;
 const LINKS = gql`
@@ -28,17 +29,24 @@ const DEMO: LinkN[] = [
 ];
 
 export default function NetworkGraph({ locale }: { locale: string }) {
+  const params = useSearchParams();
+  const focusA = params.get('a') || undefined;
+  const focusB = params.get('b') || undefined;
   const { data: racksData } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
   const racks = racksData?.racks || [];
   const [rackId, setRackId] = useState('');
-  const [origin, setOrigin] = useState<string>();
+  const [origin, setOrigin] = useState<string | undefined>(focusA);
   const [load, { data, loading }] = useLazyQuery(LINKS, { fetchPolicy: 'no-cache' });
   const [impact, { data: impactData }] = useLazyQuery(IMPACT, { fetchPolicy: 'no-cache' });
   const live = Boolean(data?.networkLinks);
   const links: LinkN[] = live ? data.networkLinks : DEMO;
   const layout = useMemo(() => layoutGraph(links), [links]);
   const hops = impactData?.blastRadius?.hops || [];
-  const hot = new Set(hops.map((h: any) => h.id));
+  const hot = new Set<string>([
+    ...hops.map((h: any) => h.id),
+    ...(focusA ? [focusA] : []),
+    ...(focusB ? [focusB] : [])
+  ]);
 
   function select(id: string) {
     setOrigin(id);
@@ -51,7 +59,9 @@ export default function NetworkGraph({ locale }: { locale: string }) {
         <div>
           <p className="text-[11px] uppercase font-bold tracking-wide text-[#706E6B]">Graphe</p>
           <h1 className="text-[28px] font-extrabold">Topologie réseau</h1>
-          <p className="text-[13px] text-[#444] max-w-[60ch]">Les nœuds touchés par l’impact passent en ambre.</p>
+          <p className="text-[13px] text-[#444] max-w-[60ch]">
+            {focusA ? `Focus journal · ${focusA.slice(0, 8)}… ↔ ${focusB?.slice(0, 8) || '—'}…` : 'Les nœuds touchés par l’impact passent en ambre.'}
+          </p>
         </div>
         <div className="flex gap-2 items-center">
           <select className="border rounded px-3 py-2 text-[13px]" value={rackId} onChange={(e) => setRackId(e.target.value)}>
@@ -61,7 +71,7 @@ export default function NetworkGraph({ locale }: { locale: string }) {
           <button type="button" className="px-3 py-2 rounded bg-[#032D60] text-white text-[13px]" disabled={!rackId || loading} onClick={() => load({ variables: { rackId } })}>
             {loading ? '…' : 'Charger'}
           </button>
-          <a className="text-[13px] underline" href={`/${locale}/outils/decouverte`}>Découverte</a>
+          <a className="text-[13px] underline" href={`/${locale}/journal-brassage`}>Journal</a>
         </div>
       </div>
 
@@ -69,7 +79,7 @@ export default function NetworkGraph({ locale }: { locale: string }) {
         <div className="rounded-xl border bg-[#071422] overflow-hidden">
           <svg viewBox="0 0 960 520" className="w-full h-auto">
             {layout.edges.map((e) => {
-              const on = hot.has(e.aId) && hot.has(e.bId);
+              const on = (hot.has(e.aId) && hot.has(e.bId)) || (e.aId === focusA && e.bId === focusB) || (e.aId === focusB && e.bId === focusA);
               return (
                 <g key={e.id}>
                   <line x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke={on ? '#F5B942' : '#3D5A80'} strokeWidth={on ? 3 : 1.5} />
@@ -90,6 +100,7 @@ export default function NetworkGraph({ locale }: { locale: string }) {
         </div>
         <aside className="slds-card p-4 text-[13px]">
           <div className="text-[11px] uppercase font-bold text-[#706E6B]">Impact {origin ? `· ${origin}` : ''}</div>
+          {focusA && <p className="mt-1 text-[12px]">Ports journal : {focusA.slice(0, 8)} / {focusB?.slice(0, 8)}</p>}
           {hops.length === 0 && <p className="mt-2 text-[#706E6B]">Cliquez un nœud.</p>}
           <ol className="mt-2 space-y-1">
             {hops.slice().sort((a: any, b: any) => a.hop - b.hop).map((h: any) => (

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Header from '@/components/Header';
 import Providers from '@/components/Providers';
 import NetworkGraph from '@/components/network/NetworkGraph';
@@ -8,7 +9,9 @@ export default function GrapheReseauPage({ params: { locale } }: { params: { loc
   return (
     <Providers>
       <Header />
-      <NetworkGraph locale={locale} />
+      <Suspense fallback={<p className="px-6 py-8 text-[13px]">Chargement du graphe…</p>}>
+        <NetworkGraph locale={locale} />
+      </Suspense>
     </Providers>
   );
 }

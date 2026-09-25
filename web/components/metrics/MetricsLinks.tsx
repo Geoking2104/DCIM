@@ -1,9 +1,11 @@
 export const METRIC_LINKS = (locale: string) => [
-  { href: `/${locale}/metriques`, label: 'Vue d’ensemble PUE · WUE · CUE · ERF', path: '/metriques' },
-  { href: `/${locale}/outils/pue`, label: 'Calculatrice PUE', path: '/outils/pue' },
-  { href: `/${locale}/outils/wue`, label: 'Calculatrice WUE', path: '/outils/wue' },
-  { href: `/${locale}/power`, label: 'Puissance live (ClickHouse)', path: '/power' },
-  { href: `/${locale}/eed`, label: 'Dossier EED & label A–G', path: '/eed' }
+  { href: `/${locale}/metriques`, label: 'Vue d’ensemble', path: '/metriques' },
+  { href: `/${locale}/outils/pue`, label: 'PUE', path: '/outils/pue' },
+  { href: `/${locale}/outils/wue`, label: 'WUE', path: '/outils/wue' },
+  { href: `/${locale}/outils/cue`, label: 'CUE', path: '/outils/cue' },
+  { href: `/${locale}/outils/erf`, label: 'ERF', path: '/outils/erf' },
+  { href: `/${locale}/power`, label: 'Puissance live', path: '/power' },
+  { href: `/${locale}/eed`, label: 'Dossier EED', path: '/eed' }
 ];
 
 export default function MetricsLinks({ locale, current }: { locale: string; current?: string }) {

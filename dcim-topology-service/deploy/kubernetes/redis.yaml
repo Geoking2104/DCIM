@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dcim-redis
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dcim-redis
+  template:
+    metadata:
+      labels:
+        app: dcim-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["sh", "-c"]
+          args:
+            - exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dcim-redis-secret
+                  key: password
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "redis-cli -a \"$REDIS_PASSWORD\" ping | grep PONG"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcim-redis-service
+  namespace: default
+spec:
+  selector:
+    app: dcim-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis

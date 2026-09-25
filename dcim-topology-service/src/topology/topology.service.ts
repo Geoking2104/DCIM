@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Neo4jService } from '../neo4j/neo4j.service';
 import { CreateDeviceInput } from './dto/create-device.input';
 import { CreateRackInput } from './dto/create-rack.input';
 import { Device } from './models/device.model';
 import { Rack } from './models/rack.model';
+import { PUB_SUB, TopologyEvents, TopologyPubSub } from './topology.constants';
 
 @Injectable()
 export class TopologyService {
-  constructor(private readonly neo4jService: Neo4jService) {}
+  constructor(
+    private readonly neo4jService: Neo4jService,
+    @Inject(PUB_SUB) private readonly pubSub: TopologyPubSub,
+  ) {}
 
   async createRack(input: CreateRackInput): Promise<Rack> {
     const id = randomUUID();
@@ -19,12 +23,16 @@ export class TopologyService {
     const result = await this.neo4jService.write(cypher, { id, ...input });
     const record = result.records[0].get('r').properties;
 
-    return {
+    const rack: Rack = {
       id: record.id,
       name: record.name,
       heightU: record.heightU.toNumber(),
       siteId: record.siteId,
     };
+
+    await this.pubSub.publish(TopologyEvents.RACK_UPDATED, { rackUpdated: rack });
+
+    return rack;
   }
 
   async createDeviceAndMount(input: CreateDeviceInput): Promise<Device> {
@@ -42,13 +50,25 @@ export class TopologyService {
     }
 
     const record = result.records[0].get('d').properties;
-    return {
+    const device: Device = {
       id: record.id,
       name: record.name,
       model: record.model,
       startU: record.startU.toNumber(),
       heightU: record.heightU.toNumber(),
     };
+
+    await this.pubSub.publish(TopologyEvents.DEVICE_MOUNTED, {
+      deviceMounted: device,
+      rackId: input.rackId,
+    });
+
+    const updatedRack = await this.getRackWithDevices(input.rackId);
+    await this.pubSub.publish(TopologyEvents.RACK_UPDATED, {
+      rackUpdated: updatedRack,
+    });
+
+    return device;
   }
 
   async getRackWithDevices(rackId: string): Promise<Rack> {

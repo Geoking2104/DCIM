@@ -1,0 +1,61 @@
+static_resources:
+  listeners:
+    - name: listener_graphql
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO
+                stream_idle_timeout: 3600s
+                upgrade_configs:
+                  - upgrade_type: websocket
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: topology_service
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: /graphql
+                          route:
+                            cluster: dcim_topology_cluster
+                            timeout: 0s
+                            idle_timeout: 3600s
+                            hash_policy:
+                              - cookie:
+                                  name: DCIM_ROUTE
+                                  ttl: 172800s
+                                  path: /
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: dcim_topology_cluster
+      connect_timeout: 5s
+      type: STRICT_DNS
+      dns_lookup_family: V4_ONLY
+      lb_policy: RING_HASH
+      ring_hash_lb_config:
+        minimum_ring_size: 1024
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http_protocol_options: {}
+      load_assignment:
+        cluster_name: dcim_topology_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: dcim-topology-headless.default.svc.cluster.local
+                      port_value: 3000

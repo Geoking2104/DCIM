@@ -14,6 +14,9 @@ import { TopologyModule } from './topology/topology.module';
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
       playground: true,
+      subscriptions: {
+        'graphql-ws': true,
+      },
     }),
     Neo4jModule.forRootAsync(),
     TopologyModule,

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { Neo4jService } from '../neo4j/neo4j.service';
 import { DiscoverNetworkInput } from './dto/discover-network.input';
 import { ImportPatchesInput } from './dto/import-patches.input';
+import { ResolvePatchConflictInput } from './dto/resolve-conflict.input';
 import { BlastRadius, ImpactHop } from './models/impact.model';
 import { DiscoveryReport, NetworkLink, PatchConflict, Port } from './models/port.model';
 
@@ -57,6 +58,31 @@ export class NetworkService {
     return report;
   }
 
+  async resolveConflict(input: ResolvePatchConflictInput): Promise<DiscoveryReport> {
+    const report = this.emptyReport('resolved', input.via || 'manual');
+    const a = await this.portById(input.wantedAId);
+    const b = await this.portById(input.wantedBId);
+    if (!a || !b) throw new NotFoundException('Port du conflit introuvable');
+    if (input.action === 'keep') {
+      report.conflicts.push({
+        reason: 'conservé tel quel',
+        wantedA: a,
+        wantedB: b,
+      });
+      return report;
+    }
+    await this.neo4j.write(
+      `MATCH (x:Port {id: $a})-[p:PATCHED_TO]-() DELETE p`,
+      { a: a.id },
+    );
+    await this.neo4j.write(
+      `MATCH (y:Port {id: $b})-[p:PATCHED_TO]-() DELETE p`,
+      { b: b.id },
+    );
+    this.applyAttempt(report, await this.attemptLink(a, b, input.via || 'conflict-replace'));
+    return report;
+  }
+
   async linksForRack(rackId: string): Promise<NetworkLink[]> {
     const result = await this.neo4j.read(
       `MATCH (d:Device)-[:INSTALLED_IN]->(:Rack {id: $rackId})
@@ -105,6 +131,11 @@ export class NetworkService {
       if (attempt.kind === 'created') report.linksCreated += 1;
       report.links.push(attempt.link);
     }
+  }
+
+  private async portById(id: string): Promise<Port | null> {
+    const r = await this.neo4j.read(`MATCH (p:Port {id: $id}) RETURN p`, { id });
+    return r.records[0] ? this.mapPort(r.records[0].get('p').properties) : null;
   }
 
   private async peerOf(portId: string): Promise<{ port: Port; via: string } | null> {

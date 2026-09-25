@@ -1,6 +1,6 @@
 'use client';
 import { gql, useLazyQuery, useQuery } from '@apollo/client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const RACKS = gql`query GRacks { racks { id name } }`;
@@ -48,6 +48,10 @@ export default function NetworkGraph({ locale }: { locale: string }) {
     ...(focusB ? [focusB] : [])
   ]);
 
+  useEffect(() => {
+    if (focusA) void impact({ variables: { id: focusA } });
+  }, [focusA, impact]);
+
   function select(id: string) {
     setOrigin(id);
     void impact({ variables: { id } });
@@ -74,7 +78,6 @@ export default function NetworkGraph({ locale }: { locale: string }) {
           <a className="text-[13px] underline" href={`/${locale}/journal-brassage`}>Journal</a>
         </div>
       </div>
-
       <div className="grid lg:grid-cols-[1fr_240px] gap-4">
         <div className="rounded-xl border bg-[#071422] overflow-hidden">
           <svg viewBox="0 0 960 520" className="w-full h-auto">

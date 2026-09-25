@@ -1,52 +1,112 @@
+import ModuleShot from '@/components/ModuleShot';
+
+const MODULES = [
+  {
+    slug: 'actifs',
+    k: '01',
+    title: 'Actifs',
+    hook: 'Arrêtez de chercher l’équipement. Il est déjà sur la fiche.',
+    benefit: 'Inventaire vivant jusqu’au port : vous vendez, déplacez et facturez sur une vérité unique — plus sur un Excel d’allée.',
+    href: (l: string) => `/${l}/modules/actifs`
+  },
+  {
+    slug: 'capacite',
+    k: '02',
+    title: 'Capacité',
+    hook: 'Sachez si le prochain serveur entre — avant d’ouvrir la porte.',
+    benefit: 'U, kilos, kW, ports : le headroom est sur l’écran. Vous évitez la pose qui fait sauter une phase.',
+    href: (l: string) => `/${l}/modules/capacite`
+  },
+  {
+    slug: 'changement',
+    k: '03',
+    title: 'Changement',
+    hook: 'Chaque move laisse une trace. Plus de « on verra bien » à 2 h du matin.',
+    benefit: 'Tickets, simulation, approbation, audit. Les équipes avancent plus vite, les auditeurs retrouvent le fil.',
+    href: (l: string) => `/${l}/modules/changement`
+  },
+  {
+    slug: 'energie',
+    k: '04',
+    title: 'Énergie',
+    hook: 'Voyez où part le kWh — et où vous arrêtez d’en perdre.',
+    benefit: 'Du compteur bâtiment au PDU de rack. Vous parlez budget et ASHRAE avec les mêmes chiffres.',
+    href: (l: string) => `/${l}/modules/energie`
+  },
+  {
+    slug: 'environnement',
+    k: '05',
+    title: 'Environnement',
+    hook: 'Le point chaud se voit avant que le rack sature.',
+    benefit: 'Climat par allée, liquid cooling compris. Vous baissez le froid sans jouer à la roulette avec le matériel.',
+    href: (l: string) => `/${l}/modules/environnement`
+  },
+  {
+    slug: 'puissance',
+    k: '06',
+    title: 'Puissance',
+    hook: 'La prise du serveur parle. Plus besoin de deviner la charge.',
+    benefit: 'Mesure à la prise, historique, déséquilibre de phase. Vous décidez un move, vous n’observez pas un graphe mort.',
+    href: (l: string) => `/${l}/power`
+  },
+  {
+    slug: 'visualisation-3d',
+    k: '07',
+    title: 'Jumeau 3D',
+    hook: 'La salle entière, dans le navigateur. Sans installer quoi que ce soit.',
+    benefit: 'Élec, thermique, liquid cooling sur le même jumeau. La réunion se fait sur le site, pas sur un plan PDF.',
+    href: (l: string) => `/${l}/modules/visualisation-3d`
+  },
+  {
+    slug: 'securite',
+    k: '08',
+    title: 'Accès & tenants',
+    hook: 'Chaque locataire ne voit que son périmètre. Point.',
+    benefit: 'Rôles, zones, step-up. L’information reste entre les bonnes mains — y compris à l’audit.',
+    href: (l: string) => `/${l}/modules/securite`
+  },
+  {
+    slug: 'analytique',
+    k: '09',
+    title: 'BI & analytique',
+    hook: 'La tendance parle avant l’alarme.',
+    benefit: 'Charge, PUE, headroom en séries. Vous galez une pose GPU le mardi, pas après l’incident du dimanche.',
+    href: (l: string) => `/${l}/modules/analytique`
+  },
+  {
+    slug: 'connectivites',
+    k: '10',
+    title: 'Connectivités',
+    hook: 'Un clic sur un port. Tout ce qui tombe avec.',
+    benefit: 'Chaîne réseau + élec dans le même graphe. Blast radius en une seconde, pas en trois réunions.',
+    href: (l: string) => `/${l}/modules/connectivites`
+  },
+  {
+    slug: 'eed',
+    k: 'EED',
+    title: 'Conformité EED',
+    hook: 'Le dossier UE en un écran. Plus en trois semaines de tableur.',
+    benefit: 'PUE, WUE, CUE, ERF et échelle A–G en preview. Export prêt pour une revue humaine — pas un tampon automatique.',
+    href: (l: string) => `/${l}/eed`
+  }
+] as const;
+
 export default function MarketingHome({ locale }: { locale: string }) {
   const plateforme = `/${locale}/plateforme`;
   const eed = `/${locale}/eed`;
-  const power = `/${locale}/power`;
   const demo = 'mailto:contact@qinode.eu?subject=Demande%20de%20d%C3%A9mo%20Qinode';
-
-  const Check = () => (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 13l4 4L19 7" /></svg>
-  );
-  const Arrow = () => (
-    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-  );
-
-  const classes = [
-    { l: 'A', t: '≤ 1.15', c: 'bg-emerald-500' },
-    { l: 'B', t: '1.25', c: 'bg-lime-500' },
-    { l: 'C', t: '1.35', c: 'bg-yellow-400' },
-    { l: 'D', t: '1.50', c: 'bg-amber-400' },
-    { l: 'E', t: '1.75', c: 'bg-orange-500' },
-    { l: 'F', t: '2.00', c: 'bg-red-500' },
-    { l: 'G', t: '> 2.0', c: 'bg-red-800' }
-  ];
-
-  const shots = [
-    {
-      src: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80',
-      cap: 'Salle — source métrologie PUE / WUE'
-    },
-    {
-      src: 'https://images.unsplash.com/photo-1544197150-b99a5804f8b4?auto=format&fit=crop&w=1200&q=80',
-      cap: 'Baies — charge IT pour le calcul Annexe III'
-    },
-    {
-      src: '/images/img-1.svg',
-      cap: 'Boucle froid — entrée ERF / chaleur fatale'
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-white text-[#032D60] antialiased">
       <div className="bg-[#032D60] text-white">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 h-8 flex items-center justify-between text-[11px]">
+        <div className="max-w-[1200px] mx-auto px-6 h-8 flex items-center justify-between text-[11px]">
           <span className="opacity-90">Souverain • On-premise • Sans cloud obligatoire</span>
-          <a href={eed} className="underline opacity-90">Module EED →</a>
+          <a href={plateforme} className="underline opacity-90">Ouvrir la plateforme →</a>
         </div>
       </div>
 
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-100">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 h-[72px] flex items-center justify-between">
+        <div className="max-w-[1200px] mx-auto px-6 h-[72px] flex items-center justify-between">
           <a href={`/${locale}`} className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-[#032D60] text-white font-extrabold grid place-items-center">Q</div>
             <div>
@@ -55,103 +115,76 @@ export default function MarketingHome({ locale }: { locale: string }) {
             </div>
           </a>
           <div className="flex items-center gap-2">
-            <a href={plateforme} className="hidden md:inline-flex text-[13px] font-semibold text-[#032D60] px-3 py-2">Plateforme</a>
-            <a href={eed} className="inline-flex text-[13px] font-semibold text-[#0176D3] px-3 py-2 underline underline-offset-4">EED</a>
-            <a href={demo} className="inline-flex items-center gap-2 bg-[#0176D3] text-white text-[13px] font-semibold px-5 py-2.5 rounded-full">Demander une démo</a>
+            <a href="#modules" className="hidden md:inline-flex text-[13px] font-semibold px-3 py-2">Modules</a>
+            <a href={eed} className="inline-flex text-[13px] font-semibold text-[#0176D3] px-3 py-2">EED</a>
+            <a href={demo} className="inline-flex bg-[#0176D3] text-white text-[13px] font-semibold px-5 py-2.5 rounded-full">Demander une démo</a>
           </div>
         </div>
       </header>
 
-      <section className="max-w-[1200px] mx-auto px-6 lg:px-8 pt-16 md:pt-24 pb-16">
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+      <section className="max-w-[1200px] mx-auto px-6 pt-16 md:pt-24 pb-12 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
+        <div>
+          <div className="inline-flex items-center gap-2 bg-[#F3F3F3] border rounded-full px-3.5 py-1.5 text-[11px] font-semibold mb-6">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> 10 MODULES + EED
+          </div>
+          <h1 className="text-[42px] md:text-[64px] font-extrabold tracking-tight leading-[0.9]">
+            Votre datacenter<br />sous contrôle.<br /><span className="text-[#0176D3]">Enfin.</span>
+          </h1>
+          <p className="mt-6 text-[18px] text-slate-600 max-w-[48ch]">
+            Une interface par décision : poser, déplacer, refroidir, prouver. Chaque module a un bénéfice mesurable — et sa copie d’écran.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <a href="#modules" className="bg-[#032D60] text-white px-7 py-3.5 rounded-full text-[15px] font-semibold">Voir les modules</a>
+            <a href={eed} className="border px-7 py-3.5 rounded-full text-[15px] font-semibold">Module EED</a>
+          </div>
+        </div>
+        <ModuleShot variant="eed" />
+      </section>
+
+      <section id="modules" className="bg-[#F8FAFC] border-y">
+        <div className="max-w-[1200px] mx-auto px-6 py-16 space-y-14">
           <div>
-            <div className="inline-flex items-center gap-2 bg-[#F3F3F3] border border-slate-200 rounded-full px-3.5 py-1.5 text-[11px] font-semibold mb-6">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> PLATEFORME DCIM EUROPÉENNE
-            </div>
-            <h1 className="text-[42px] md:text-[64px] font-extrabold tracking-tight leading-[0.9]">
-              Votre datacenter<br />sous contrôle.<br /><span className="text-[#0176D3]">Enfin.</span>
-            </h1>
-            <p className="mt-6 text-[18px] md:text-[20px] leading-[1.4] text-slate-600 max-w-[48ch] font-medium">
-              Qinode dit ce que vous avez, ce que vous consommez, et ce qu'il reste — y compris le dossier énergie européen.
-            </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <a href={plateforme} className="inline-flex items-center gap-2 bg-[#032D60] text-white px-7 py-3.5 rounded-full text-[15px] font-semibold">Voir la plateforme <Arrow /></a>
-              <a href={eed} className="inline-flex items-center gap-2 bg-white border border-slate-200 px-7 py-3.5 rounded-full text-[15px] font-semibold">Ouvrir le module EED</a>
-            </div>
+            <h2 className="text-[30px] md:text-[40px] font-extrabold leading-[1.05]">Ce que chaque module vous fait gagner.</h2>
+            <p className="mt-3 text-slate-600 max-w-[60ch]">Pas de jargon pour le plaisir. Un bénéfice, une copie d’écran produit.</p>
           </div>
-          <a href={eed} className="block bg-white border rounded-[1.5rem] shadow-[0_20px_60px_rgba(3,45,96,0.12)] overflow-hidden">
-            <div className="h-10 bg-[#F8FAFC] border-b flex items-center px-4 text-[11px] text-slate-400">qinode.eu / eed — preview A–G</div>
-            <img src={shots[0].src} alt="Salle datacenter" className="h-40 w-full object-cover" />
-            <div className="p-5 grid grid-cols-3 gap-3">
-              <div className="rounded-xl p-3 bg-emerald-50 text-emerald-700"><div className="text-[10px] uppercase">PUE</div><div className="text-[22px] font-extrabold">1.07</div></div>
-              <div className="rounded-xl p-3 bg-[#0176D3]/10 text-[#0176D3]"><div className="text-[10px] uppercase">Classe</div><div className="text-[22px] font-extrabold">A</div></div>
-              <div className="rounded-xl p-3 bg-slate-100"><div className="text-[10px] uppercase">ERF</div><div className="text-[22px] font-extrabold">12%</div></div>
-            </div>
-          </a>
-        </div>
-      </section>
-
-      <section id="eed" className="bg-[#032D60] text-white">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-16 md:py-20">
-          <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-blue-200 font-semibold">Règlement délégué (UE) 2024/1364</div>
-              <h2 className="mt-3 text-[32px] md:text-[44px] font-extrabold leading-[0.95]">Conformité EED,<br />sans tableur de 3 semaines.</h2>
-              <p className="mt-5 text-[16px] leading-7 text-blue-100 max-w-[52ch]">
-                Captures du module : salle, baies, boucle froid — puis le tableau A–G. Preview interne, pas le label UE officiel.
-              </p>
-              <a href={eed} className="mt-8 inline-flex items-center gap-2 bg-white text-[#032D60] px-7 py-3.5 rounded-full text-[15px] font-semibold">
-                Ouvrir /fr/eed <Arrow />
-              </a>
-            </div>
-            <div className="bg-white text-[#032D60] rounded-[1.5rem] p-6 shadow-xl">
-              <div className="flex items-start justify-between gap-4">
+          {MODULES.map((m, i) => {
+            const reverse = i % 2 === 1;
+            return (
+              <article key={m.slug} className={`grid lg:grid-cols-2 gap-8 items-center ${reverse ? 'lg:[&>div:first-child]:order-2' : ''}`}>
                 <div>
-                  <div className="text-[11px] uppercase tracking-widest text-slate-400">Capture tableau de bord</div>
-                  <div className="text-[18px] font-bold mt-1">Paris East • classe A preview</div>
+                  <div className="text-[11px] font-bold tracking-[0.18em] uppercase text-[#0176D3]">{m.k} · {m.title}</div>
+                  <h3 className="mt-2 text-[24px] md:text-[28px] font-extrabold leading-[1.15]">{m.hook}</h3>
+                  <p className="mt-3 text-[15px] leading-6 text-slate-600">{m.benefit}</p>
+                  <a href={m.href(locale)} className="inline-flex mt-5 text-[13px] font-semibold text-[#0176D3]">
+                    Ouvrir le module →
+                  </a>
                 </div>
-                <div className="w-16 h-16 rounded-2xl bg-emerald-500 text-white grid place-items-center text-[28px] font-black">A</div>
-              </div>
-              <div className="mt-6 space-y-1.5">
-                {classes.map((row) => (
-                  <div key={row.l} className="flex items-center gap-3 text-[12px] font-mono">
-                    <span className={`w-8 text-center text-white text-[11px] font-bold py-0.5 ${row.c}`}>{row.l}</span>
-                    <div className="flex-1 h-2 bg-slate-100 rounded">
-                      <div className={`h-2 ${row.c} rounded`} style={{ width: row.l === 'A' ? '88%' : '40%' }} />
-                    </div>
-                    <span className="w-14 text-right text-slate-500">PUE {row.t}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-12 grid md:grid-cols-3 gap-4">
-            {shots.map((s) => (
-              <a key={s.cap} href={eed} className="block rounded-2xl overflow-hidden border border-white/15 bg-white/5">
-                <img src={s.src} alt={s.cap} className="h-44 w-full object-cover" />
-                <div className="px-3 py-2 text-[12px] text-blue-100">{s.cap}</div>
-              </a>
-            ))}
-          </div>
+                <a href={m.href(locale)} className="block">
+                  <ModuleShot variant={m.slug} />
+                </a>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <section className="bg-[#F8FAFC] border-y">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-16">
-          <h2 className="text-[30px] md:text-[40px] font-extrabold">Le problème que tout le monde connaît.</h2>
-          <div className="mt-10 grid md:grid-cols-3 gap-6">
-            <a href={plateforme} className="bg-white border rounded-[1.25rem] p-6 block"><h3 className="font-bold">On ne sait plus ce qui est branché où</h3><p className="mt-2 text-[14px] text-slate-600">Excel et plans obsolètes.</p></a>
-            <a href={power} className="bg-white border rounded-[1.25rem] p-6 block"><h3 className="font-bold">On découvre la panne trop tard</h3><p className="mt-2 text-[14px] text-slate-600">Pas de vue de la chaîne électrique.</p></a>
-            <a href={eed} className="bg-white border border-[#0176D3] rounded-[1.25rem] p-6 block"><h3 className="font-bold">Le reporting UE prend 3 semaines</h3><p className="mt-2 text-[14px] text-slate-600">Le module EED assemble PUE, WUE, ERF.</p></a>
+      <section className="max-w-[1200px] mx-auto px-6 py-16">
+        <div className="rounded-[1.75rem] bg-[#032D60] text-white p-8 md:p-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-[28px] md:text-[36px] font-extrabold">On vous le montre sur vos racks ?</h2>
+            <p className="mt-2 text-[14px] text-blue-100">20 minutes. Interface réelle, pas de slides.</p>
           </div>
+          <a href={demo} className="bg-white text-[#032D60] px-7 py-3.5 rounded-full text-[14px] font-semibold shrink-0">Demander une démo live</a>
         </div>
       </section>
 
       <footer className="border-t">
-        <div className="max-w-[1200px] mx-auto px-6 py-10 flex flex-wrap justify-between gap-4 text-[13px]">
+        <div className="max-w-[1200px] mx-auto px-6 py-8 flex flex-wrap gap-4 text-[13px] justify-between">
           <span className="font-bold">QINODE.EU</span>
-          <a className="underline font-semibold" href={eed}>EED /fr/eed</a>
+          <div className="flex gap-4">
+            <a className="underline" href={plateforme}>Plateforme</a>
+            <a className="underline" href={eed}>EED</a>
+          </div>
         </div>
       </footer>
     </div>

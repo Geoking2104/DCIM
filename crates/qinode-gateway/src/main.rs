@@ -1,10 +1,11 @@
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
-    http::StatusCode,
+    http::{header::AUTHORIZATION, StatusCode},
     routing::{get, post},
     Json, Router,
 };
+use qinode_auth::Keycloak;
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
 use qinode_graph::{schema as graph_schema, AppSchema};
 use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
@@ -19,6 +20,7 @@ struct AppState {
     nest_graphql: String,
     ch: Arc<ClickHouse>,
     gql: AppSchema,
+    kc: Arc<Keycloak>,
 }
 
 #[derive(Serialize)]
@@ -27,8 +29,7 @@ struct Health {
     rust: bool,
     graphql: bool,
     graphql_ws: bool,
-    redfish: bool,
-    clickhouse: String,
+    keycloak: bool,
     nest_graphql: String,
 }
 
@@ -41,12 +42,14 @@ async fn main() {
     let ch = ClickHouse::from_env();
     let _ = ch.ensure_schema().await;
     let gql = graph_schema();
+    let kc = Keycloak::from_env();
 
     let state = AppState {
         nest_graphql: std::env::var("NEST_GRAPHQL_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:4000/graphql".into()),
         ch: Arc::new(ch),
         gql: gql.clone(),
+        kc: Arc::new(kc),
     };
 
     let app = Router::new()
@@ -65,7 +68,7 @@ async fn main() {
         .unwrap_or_else(|_| "0.0.0.0:8088".into())
         .parse()
         .expect("LISTEN");
-    tracing::info!(%addr, "qinode-gateway graphql-ws /graphql/ws");
+    tracing::info!(%addr, "qinode-gateway");
     let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
     axum::serve(listener, app).await.expect("serve");
 }
@@ -76,14 +79,23 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
         rust: true,
         graphql: true,
         graphql_ws: true,
-        redfish: true,
-        clickhouse: std::env::var("CLICKHOUSE_URL").unwrap_or_else(|_| "http://127.0.0.1:8123".into()),
+        keycloak: state.kc.required(),
         nest_graphql: state.nest_graphql,
     })
 }
 
-async fn graphql_handler(State(state): State<AppState>, req: GraphQLRequest) -> GraphQLResponse {
-    state.gql.execute(req.into_inner()).await.into()
+async fn graphql_handler(
+    State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
+    req: GraphQLRequest,
+) -> Result<GraphQLResponse, (StatusCode, String)> {
+    let auth = headers.get(AUTHORIZATION).and_then(|v| v.to_str().ok());
+    state
+        .kc
+        .verify_bearer(auth)
+        .await
+        .map_err(|e| (StatusCode::UNAUTHORIZED, e.to_string()))?;
+    Ok(state.gql.execute(req.into_inner()).await.into())
 }
 
 async fn calc_pue(Json(input): Json<PueInput>) -> Result<Json<MetricPreview>, (StatusCode, String)> {
@@ -95,6 +107,14 @@ async fn calc_wue(Json(input): Json<WueInput>) -> Result<Json<MetricPreview>, (S
 async fn redfish_snapshot(Json(target): Json<BmcTarget>) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
     snapshot(target).await.map(Json).map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
 }
-async fn insert_power(State(state): State<AppState>, Json(row): Json<PowerSample>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    state.ch.insert_power(&row).await.map(|_| Json(serde_json::json!({"ok": true, "rack_id": row.rack_id}))).map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
+async fn insert_power(
+    State(state): State<AppState>,
+    Json(row): Json<PowerSample>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    state
+        .ch
+        .insert_power(&row)
+        .await
+        .map(|_| Json(serde_json::json!({"ok": true, "rack_id": row.rack_id})))
+        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
 }

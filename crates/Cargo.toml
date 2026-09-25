@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["qinode-core", "qinode-gateway", "qinode-ingest", "qinode-timeseries", "qinode-graph"]
+members = ["qinode-core", "qinode-gateway", "qinode-ingest", "qinode-timeseries", "qinode-graph", "qinode-auth"]
 
 [workspace.package]
 edition = "2021"

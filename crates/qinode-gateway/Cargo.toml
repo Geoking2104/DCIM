@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+qinode-auth = { path = "../qinode-auth" }
 qinode-core = { path = "../qinode-core" }
 qinode-ingest = { path = "../qinode-ingest" }
 qinode-timeseries = { path = "../qinode-timeseries" }

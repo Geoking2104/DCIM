@@ -14,7 +14,7 @@ export default function PuePage({ params: { locale } }: { params: { locale: stri
       </header>
       <main className="max-w-[720px] mx-auto px-6 py-8 space-y-6">
         <MetricsLinks locale={locale} current="/outils/pue" />
-        <LivePue rackId="RACK-05" />
+        <LivePue />
         <EnergyCalculator kind="pue" locale={locale || 'fr'} />
       </main>
     </div>

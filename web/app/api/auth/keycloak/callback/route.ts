@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authEndpoints, redirectUri } from '@/lib/keycloak';
 import { createSessionToken, sessionCookieName } from '@/lib/session';
+import { extractKeycloakRoles, ROLES } from '@/lib/roles';
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code');
@@ -45,7 +46,10 @@ export async function GET(req: NextRequest) {
     }
   } catch {}
 
-  const session = await createSessionToken(email);
+  let roles = extractKeycloakRoles(tokens.access_token);
+  if (roles.length === 0) roles = [ROLES.VIEWER];
+
+  const session = await createSessionToken(email, roles);
   const dest = nextPath && nextPath.startsWith('/') ? nextPath : '/fr/plateforme';
   const res = NextResponse.redirect(new URL(dest, req.url));
   res.cookies.set({

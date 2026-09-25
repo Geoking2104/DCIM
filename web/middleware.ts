@@ -1,6 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { readSessionToken, sessionCookieName } from '@/lib/session';
+import { hasAnyRole, rolesForPath } from '@/lib/roles';
 
 const intl = createMiddleware({
   locales: ['fr', 'en'],
@@ -20,6 +21,15 @@ export default async function middleware(req: NextRequest) {
       const url = req.nextUrl.clone();
       url.pathname = `/${locale}/login`;
       url.searchParams.set('next', pathname);
+      return NextResponse.redirect(url);
+    }
+    const needed = rolesForPath(pathname);
+    if (needed && !hasAnyRole(session.roles || [], needed)) {
+      const locale = pathname.split('/')[1] || 'fr';
+      const url = req.nextUrl.clone();
+      url.pathname = `/${locale}/login`;
+      url.searchParams.set('error', 'forbidden');
+      url.searchParams.set('need', needed.join(','));
       return NextResponse.redirect(url);
     }
   }

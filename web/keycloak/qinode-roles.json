@@ -1,0 +1,29 @@
+{
+  "realm": "qinode",
+  "roles": {
+    "realm": [
+      { "name": "qinode-admin", "description": "Accès total plateforme, power, modules, EED" },
+      { "name": "qinode-operator", "description": "Exploitation : plateforme, modules, power, EED" },
+      { "name": "qinode-energy", "description": "Chaîne électrique / power" },
+      { "name": "qinode-compliance", "description": "Module EED / reporting UE" },
+      { "name": "qinode-viewer", "description": "Lecture plateforme et modules" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "qinode-web",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["https://dcim-web.vercel.app/api/auth/keycloak/callback"],
+      "webOrigins": ["https://dcim-web.vercel.app"],
+      "protocol": "openid-connect",
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    }
+  ],
+  "notes": [
+    "Créer les 5 rôles realm ci-dessus.",
+    "Mapper realm roles dans le token : Client scopes → roles → Add mapper → User Realm Role (add to access token).",
+    "Assigner les rôles aux utilisateurs ou groupes (ops, rse, energy)."
+  ]
+}

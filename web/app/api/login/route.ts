@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSessionToken, expectedPassword, expectedUser, sessionCookieName } from '@/lib/session';
+import { ROLES } from '@/lib/roles';
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Identifiants incorrects' }, { status: 401 });
   }
 
-  const token = await createSessionToken(email.toLowerCase());
+  const token = await createSessionToken(email.toLowerCase(), [ROLES.ADMIN, ROLES.OPERATOR]);
   const res = NextResponse.json({ ok: true, next });
   res.cookies.set({
     name: sessionCookieName(),

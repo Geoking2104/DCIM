@@ -17,9 +17,10 @@ async function hmac(value: string) {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function createSessionToken(email: string) {
+export async function createSessionToken(email: string, roles: string[] = []) {
   const exp = Date.now() + TTL_MS;
-  const payload = `${email}|${exp}`;
+  const roleStr = roles.join(',');
+  const payload = `${email}|${exp}|${roleStr}`;
   return `${payload}|${await hmac(payload)}`;
 }
 
@@ -29,11 +30,14 @@ export async function readSessionToken(token?: string | null) {
   if (parts.length < 3) return null;
   const email = parts[0];
   const exp = Number(parts[1]);
-  const sig = parts.slice(2).join('|');
+  const roleStr = parts.length >= 4 ? parts[2] : '';
+  const sig = parts.length >= 4 ? parts.slice(3).join('|') : parts.slice(2).join('|');
+  const payload = parts.length >= 4 ? `${email}|${exp}|${roleStr}` : `${email}|${exp}`;
   if (!email || !exp || Date.now() > exp) return null;
-  const expected = await hmac(`${email}|${exp}`);
+  const expected = await hmac(payload);
   if (expected !== sig) return null;
-  return { email, exp };
+  const roles = roleStr ? roleStr.split(',').filter(Boolean) : ['qinode-operator'];
+  return { email, exp, roles };
 }
 
 export function sessionCookieName() {

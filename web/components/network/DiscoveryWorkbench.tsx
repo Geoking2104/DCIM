@@ -56,9 +56,12 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
 
   return (
     <div className="max-w-[1100px] mx-auto px-6 py-8 space-y-8">
-      <div>
-        <a href={`/${locale}/outils`} className="text-[12px] text-[#0176D3]">← Outils</a>
-        <h1 className="text-[28px] font-extrabold mt-2">Outils de découverte réseau</h1>
+      <div className="flex justify-between gap-3 flex-wrap">
+        <div>
+          <a href={`/${locale}/outils`} className="text-[12px] text-[#0176D3]">← Outils</a>
+          <h1 className="text-[28px] font-extrabold mt-2">Outils de découverte réseau</h1>
+        </div>
+        <a href={`/${locale}/journal-brassage`} className="px-3 py-2 rounded border text-[13px] bg-white h-fit">Journal visuel</a>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {DISCOVERY_TOOLS.map((t) => (
@@ -109,12 +112,15 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
         )}
       </div>
       <div className="slds-card p-5 bg-white">
-        <div className="text-[11px] uppercase font-bold text-[#706E6B]">Journal des décisions</div>
+        <div className="flex justify-between">
+          <div className="text-[11px] uppercase font-bold text-[#706E6B]">Dernières décisions</div>
+          <a className="text-[12px] underline" href={`/${locale}/journal-brassage`}>Voir la frise</a>
+        </div>
         <ul className="mt-3 space-y-1 text-[13px] font-mono">
-          {(log?.patchDecisions || []).slice(0, 12).map((d: any) => (
+          {(log?.patchDecisions || []).slice(0, 6).map((d: any) => (
             <li key={d.id}>
               <span className="text-[#706E6B]">{d.at?.slice(0, 19)}</span>{' '}
-              <b>{d.action}</b> {d.actor} · {d.aId.slice(0, 8)}…↔{d.bId.slice(0, 8)}…
+              <b>{d.action}</b> {d.actor}
             </li>
           ))}
           {!log?.patchDecisions?.length && <li className="text-[#706E6B]">Aucune décision enregistrée.</li>}

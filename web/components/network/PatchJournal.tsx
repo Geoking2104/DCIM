@@ -15,19 +15,31 @@ export default function PatchJournal({ locale }: { locale: string }) {
     ssr: false
   });
   const [filter, setFilter] = useState<'all' | 'keep' | 'replace'>('all');
+  const [actor, setActor] = useState('all');
   const [q, setQ] = useState('');
   const rows = data?.patchDecisions || [];
   const keep = rows.filter((r: any) => r.action === 'keep').length;
   const replace = rows.filter((r: any) => r.action === 'replace').length;
   const total = rows.length || 1;
+  const actors = useMemo(() => {
+    const map = new Map<string, { keep: number; replace: number }>();
+    rows.forEach((r: any) => {
+      const cur = map.get(r.actor) || { keep: 0, replace: 0 };
+      if (r.action === 'replace') cur.replace += 1;
+      else cur.keep += 1;
+      map.set(r.actor, cur);
+    });
+    return [...map.entries()].sort((a, b) => b[1].keep + b[1].replace - (a[1].keep + a[1].replace));
+  }, [rows]);
   const visible = useMemo(() => {
     return rows.filter((r: any) => {
       if (filter !== 'all' && r.action !== filter) return false;
+      if (actor !== 'all' && r.actor !== actor) return false;
       if (!q) return true;
       const hay = `${r.actor} ${r.aId} ${r.bId} ${r.action}`.toLowerCase();
       return hay.includes(q.toLowerCase());
     });
-  }, [rows, filter, q]);
+  }, [rows, filter, actor, q]);
 
   function exportCsv() {
     const header = 'at,action,actor,aId,bId';
@@ -64,6 +76,26 @@ export default function PatchJournal({ locale }: { locale: string }) {
         <div className="bg-[#0B7E25] h-3" style={{ width: `${(keep / total) * 100}%` }} />
         <div className="bg-[#BA0517] h-3" style={{ width: `${(replace / total) * 100}%` }} />
       </div>
+      {actors.length > 0 && (
+        <div className="slds-card p-4 bg-white space-y-2">
+          <div className="text-[11px] uppercase font-bold text-[#706E6B]">Par acteur</div>
+          {actors.map(([name, c]) => {
+            const n = c.keep + c.replace || 1;
+            return (
+              <button key={name} type="button" onClick={() => setActor(actor === name ? 'all' : name)} className="w-full text-left">
+                <div className="flex justify-between text-[12px] mb-1">
+                  <span className={actor === name ? 'font-bold' : ''}>{name}</span>
+                  <span className="text-[#706E6B]">{c.keep} keep · {c.replace} replace</span>
+                </div>
+                <div className="h-1.5 bg-[#F3F3F3] rounded overflow-hidden flex">
+                  <div className="bg-[#0B7E25]" style={{ width: `${(c.keep / n) * 100}%` }} />
+                  <div className="bg-[#BA0517]" style={{ width: `${(c.replace / n) * 100}%` }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
       <div className="flex flex-wrap gap-2 items-center">
         {(['all', 'keep', 'replace'] as const).map((f) => (
           <button key={f} type="button" onClick={() => setFilter(f)} className={`px-3 py-1 rounded border text-[12px] ${filter === f ? 'bg-[#032D60] text-white' : 'bg-white'}`}>

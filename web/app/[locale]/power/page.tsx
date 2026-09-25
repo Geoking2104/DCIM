@@ -12,7 +12,7 @@ export default function PowerPage({ params: { locale } }: { params: { locale: st
         <div className="flex items-center gap-2 text-[11px] text-[#706E6B]"><a href={`/${locale}`} className="hover:underline">Plateforme</a><span>/</span><span className="font-bold text-[#032D60]">Power Chain • Grid → Battery Cell</span></div>
         <h1 className="text-[28px] font-bold mt-2">Supervision Électrique Complète • SLDS Record Home</h1>
         <p className="text-[13px] text-[#444] max-w-[800px] mt-1">Traçabilité complète grid, groupe, UPS, PDU, rack, device, cellule batterie. Données temps réel ClickHouse (time-series) + Graph CSoT Neo4j (topologie). Blast-radius analysis si perte grid.</p>
-        <p className="mt-2 text-[13px]"><a className="text-[#0176D3] underline" href={`/${locale}/metriques">Ratios PUE / WUE / CUE / ERF →</a></p>
+        <p className="mt-2 text-[13px]"><a className="text-[#0176D3] underline" href={`/${locale}/metriques`}>Ratios PUE / WUE / CUE / ERF →</a></p>
         <div className="mt-6">
           <PowerFlow/>
         </div>

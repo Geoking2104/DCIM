@@ -1,0 +1,86 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Neo4jService } from '../neo4j/neo4j.service';
+import { CreateDeviceInput } from './dto/create-device.input';
+import { CreateRackInput } from './dto/create-rack.input';
+import { Device } from './models/device.model';
+import { Rack } from './models/rack.model';
+
+@Injectable()
+export class TopologyService {
+  constructor(private readonly neo4jService: Neo4jService) {}
+
+  async createRack(input: CreateRackInput): Promise<Rack> {
+    const id = randomUUID();
+    const cypher = `
+      CREATE (r:Rack {id: $id, name: $name, heightU: $heightU, siteId: $siteId})
+      RETURN r
+    `;
+    const result = await this.neo4jService.write(cypher, { id, ...input });
+    const record = result.records[0].get('r').properties;
+
+    return {
+      id: record.id,
+      name: record.name,
+      heightU: record.heightU.toNumber(),
+      siteId: record.siteId,
+    };
+  }
+
+  async createDeviceAndMount(input: CreateDeviceInput): Promise<Device> {
+    const id = randomUUID();
+    const cypher = `
+      MATCH (r:Rack {id: $rackId})
+      CREATE (d:Device {id: $id, name: $name, model: $model, startU: $startU, heightU: $heightU})
+      CREATE (d)-[:INSTALLED_IN {startU: $startU, heightU: $heightU}]->(r)
+      RETURN d
+    `;
+    const result = await this.neo4jService.write(cypher, { id, ...input });
+
+    if (result.records.length === 0) {
+      throw new NotFoundException(`Rack ${input.rackId} not found`);
+    }
+
+    const record = result.records[0].get('d').properties;
+    return {
+      id: record.id,
+      name: record.name,
+      model: record.model,
+      startU: record.startU.toNumber(),
+      heightU: record.heightU.toNumber(),
+    };
+  }
+
+  async getRackWithDevices(rackId: string): Promise<Rack> {
+    const cypher = `
+      MATCH (r:Rack {id: $rackId})
+      OPTIONAL MATCH (d:Device)-[:INSTALLED_IN]->(r)
+      RETURN r, collect(d) AS devices
+    `;
+    const result = await this.neo4jService.read(cypher, { rackId });
+
+    if (result.records.length === 0) {
+      throw new NotFoundException(`Rack ${rackId} not found`);
+    }
+
+    const rackProperties = result.records[0].get('r').properties;
+    const deviceNodes = result.records[0].get('devices');
+    const devices: Device[] = deviceNodes
+      .filter((node: { properties?: Record<string, unknown> }) => node.properties)
+      .map((node: { properties: Record<string, any> }) => ({
+        id: node.properties.id,
+        name: node.properties.name,
+        model: node.properties.model,
+        startU: node.properties.startU.toNumber(),
+        heightU: node.properties.heightU.toNumber(),
+      }));
+
+    return {
+      id: rackProperties.id,
+      name: rackProperties.name,
+      heightU: rackProperties.heightU.toNumber(),
+      siteId: rackProperties.siteId,
+      devices,
+    };
+  }
+}

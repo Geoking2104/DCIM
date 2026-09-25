@@ -42,12 +42,41 @@ flowchart LR
 
 The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The implemented `dcim-topology-service` currently manages racks and mounted devices and publishes GraphQL subscriptions. The `web/` Next.js app is the bilingual operations UI (platform overview + power-chain supervision). The broader compliance, CDU, heat-reuse, and tenant-allocation modules described in the specifications remain product requirements until implemented and tested.
 
+## Metrics and supervision
+
+Product UI (see [web/METRICS.md](web/METRICS.md)):
+
+| Page | Route |
+| --- | --- |
+| Ensemble PUE · WUE · CUE · ERF | `/fr/metriques` |
+| Calculatrices | `/fr/outils/pue` `wue` `cue` `erf` |
+| Puissance live | `/fr/power` |
+| EED | `/fr/eed` |
+| Supervision + inbox alertes | `/fr/supervision` |
+
+APIs : `POST /api/metrics/{pue,wue,cue,erf}`, `GET /api/metrics/live?rack=`, `GET|POST /api/alerts`.
+
+Ops overlay (local, not Cloud):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.monitor.yml --profile monitor up -d
+```
+
+| Service | URL |
+| --- | --- |
+| Grafana | http://localhost:3001 (`admin` / `GRAFANA_PASSWORD`, default `qinode`) |
+| Prometheus | http://localhost:9090 |
+
+Telegraf (SNMP/Redfish) → ClickHouse. Grafana alerting → webhook `POST /api/alerts` → table `dcim.alerts`. Docs: [ops/MONITORING.md](ops/MONITORING.md).
+
 ## Documentation
 
 - [Functional Requirements Document](docs/functional-requirements.md)
 - [Regulatory Compliance Baseline](docs/regulatory-compliance.md)
 - [Technical Architecture](docs/technical-architecture.md)
 - [Operations Web UI](web/README.md)
+- [Metrics map](web/METRICS.md)
+- [Monitoring overlay](ops/MONITORING.md)
 - [Topology Service](dcim-topology-service/README.md)
 - [Multi-pod WebSocket Deployment](dcim-topology-service/deploy/README.md)
 

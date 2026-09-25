@@ -16,15 +16,12 @@ export default function LivePue({ rackId }: { rackId?: string }) {
     let stop = false;
     async function tick() {
       try {
-        const res = await fetch(`/api/clickhouse/power?rack=${encodeURIComponent(rack)}`);
-        const rows = await res.json();
-        const last = Array.isArray(rows) ? rows[rows.length - 1] : null;
-        const grid = Number(last?.grid_kw);
-        const it = Number(last?.rack_kw || last?.pdu_kw);
-        if (!stop && grid > 0 && it > 0) {
-          setPue(grid / it);
+        const res = await fetch(`/api/metrics/live?rack=${encodeURIComponent(rack)}`);
+        const data = await res.json();
+        if (!stop && data.ok) {
+          setPue(data.value);
           setOk(true);
-        }
+        } else if (!stop) setOk(false);
       } catch {
         if (!stop) setOk(false);
       }
@@ -37,7 +34,7 @@ export default function LivePue({ rackId }: { rackId?: string }) {
   return (
     <div className="slds-card p-4 bg-white flex items-center justify-between gap-3">
       <div>
-        <div className="text-[11px] uppercase font-bold text-[#706E6B]">PUE instantané · grid / rack</div>
+        <div className="text-[11px] uppercase font-bold text-[#706E6B]">PUE instantané · GET /api/metrics/live</div>
         <div className="text-[28px] font-black">{pue ? pue.toFixed(3) : '—'}</div>
         <div className="text-[11px] text-[#706E6B] font-mono">{rack || '—'} · 10 s · pas un PUE ISO</div>
       </div>

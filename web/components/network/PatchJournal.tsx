@@ -8,6 +8,14 @@ const DECISIONS = gql`
   }
 `;
 
+type Period = 'all' | '24h' | '7d' | '30d';
+
+function since(period: Period) {
+  if (period === 'all') return 0;
+  const h = period === '24h' ? 24 : period === '7d' ? 24 * 7 : 24 * 30;
+  return Date.now() - h * 3600_000;
+}
+
 export default function PatchJournal({ locale }: { locale: string }) {
   const { data, loading, error, refetch } = useQuery(DECISIONS, {
     errorPolicy: 'all',
@@ -15,31 +23,35 @@ export default function PatchJournal({ locale }: { locale: string }) {
     ssr: false
   });
   const [filter, setFilter] = useState<'all' | 'keep' | 'replace'>('all');
+  const [period, setPeriod] = useState<Period>('all');
   const [actor, setActor] = useState('all');
   const [q, setQ] = useState('');
   const rows = data?.patchDecisions || [];
-  const keep = rows.filter((r: any) => r.action === 'keep').length;
-  const replace = rows.filter((r: any) => r.action === 'replace').length;
-  const total = rows.length || 1;
+  const windowed = useMemo(() => {
+    const t = since(period);
+    return t ? rows.filter((r: any) => new Date(r.at).getTime() >= t) : rows;
+  }, [rows, period]);
+  const keep = windowed.filter((r: any) => r.action === 'keep').length;
+  const replace = windowed.filter((r: any) => r.action === 'replace').length;
+  const total = windowed.length || 1;
   const actors = useMemo(() => {
     const map = new Map<string, { keep: number; replace: number }>();
-    rows.forEach((r: any) => {
+    windowed.forEach((r: any) => {
       const cur = map.get(r.actor) || { keep: 0, replace: 0 };
       if (r.action === 'replace') cur.replace += 1;
       else cur.keep += 1;
       map.set(r.actor, cur);
     });
     return [...map.entries()].sort((a, b) => b[1].keep + b[1].replace - (a[1].keep + a[1].replace));
-  }, [rows]);
+  }, [windowed]);
   const visible = useMemo(() => {
-    return rows.filter((r: any) => {
+    return windowed.filter((r: any) => {
       if (filter !== 'all' && r.action !== filter) return false;
       if (actor !== 'all' && r.actor !== actor) return false;
       if (!q) return true;
-      const hay = `${r.actor} ${r.aId} ${r.bId} ${r.action}`.toLowerCase();
-      return hay.includes(q.toLowerCase());
+      return `${r.actor} ${r.aId} ${r.bId} ${r.action}`.toLowerCase().includes(q.toLowerCase());
     });
-  }, [rows, filter, actor, q]);
+  }, [windowed, filter, actor, q]);
 
   function exportCsv() {
     const header = 'at,action,actor,aId,bId';
@@ -67,8 +79,15 @@ export default function PatchJournal({ locale }: { locale: string }) {
       </div>
       {error && <p className="text-[#C23934] text-[13px]">{error.message}</p>}
       {loading && <p className="text-[13px]">Chargement…</p>}
+      <div className="flex flex-wrap gap-2">
+        {(['all', '24h', '7d', '30d'] as Period[]).map((p) => (
+          <button key={p} type="button" onClick={() => setPeriod(p)} className={`px-3 py-1 rounded border text-[12px] ${period === p ? 'bg-[#0176D3] text-white' : 'bg-white'}`}>
+            {p === 'all' ? 'Toutes dates' : p}
+          </button>
+        ))}
+      </div>
       <div className="grid sm:grid-cols-3 gap-3">
-        <Stat label="Décisions" value={rows.length} />
+        <Stat label="Décisions" value={windowed.length} />
         <Stat label="Conservés" value={keep} />
         <Stat label="Remplacés" value={replace} />
       </div>
@@ -113,6 +132,7 @@ export default function PatchJournal({ locale }: { locale: string }) {
             <div className="text-[15px] font-bold">{d.action === 'replace' ? 'Remplacement' : 'Conservation'}</div>
             <div className="text-[13px] text-[#444]">{d.actor}</div>
             <div className="text-[12px] font-mono text-[#706E6B]">{d.aId} ↔ {d.bId}</div>
+            <a className="text-[12px] text-[#0176D3]" href={`/${locale}/graphe-reseau`}>Voir le graphe</a>
           </li>
         ))}
       </ol>

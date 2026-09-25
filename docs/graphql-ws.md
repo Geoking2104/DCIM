@@ -1,17 +1,12 @@
 # graphql-ws
 
-Protocole [graphql-transport-ws](https://github.com/enisdenjo/graphql-ws).
-
 | Cible | URL |
 |---|---|
-| Nest (prod) | `ws://localhost:4000/graphql` |
-| Rust sidecar | `ws://127.0.0.1:8088/graphql/ws` |
+| Nest | `ws://localhost:4000/graphql` |
+| Rust | `ws://127.0.0.1:8088/graphql/ws` |
 
-Le front (Apollo `GraphQLWsLink`) n’ouvre le socket **que** pour les `subscription`. Queries / mutations restent en POST `/api/graphql` (Vercel ne tient pas un WS).
+`connection_init.payload.authorization` = `Bearer …`  
+Le front le récupère via `GET /api/auth/ws-params` (cookie `kc_access` httpOnly, same-origin).
 
-```
-NEXT_PUBLIC_GRAPHQL_WS_URL=ws://localhost:4000/graphql
-```
-
-Subscriptions : `rackUpdated(rackId)` · `deviceMounted(rackId)`.
-LiveRacks refetch à chaque `rackUpdated`.
+Rust : `GraphQLSubscription.on_connection_init` → même JWKS que `POST /graphql`.  
+Si `KEYCLOAK_OPTIONAL=true` ou pas d’issuer, connexion acceptée sans token.

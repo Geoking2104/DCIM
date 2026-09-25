@@ -1,3 +1,4 @@
+use async_graphql::Data;
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
@@ -33,6 +34,19 @@ struct Health {
     nest_graphql: String,
 }
 
+fn ws_service(schema: AppSchema, kc: Arc<Keycloak>) -> GraphQLSubscription<AppSchema> {
+    GraphQLSubscription::new(schema).on_connection_init(move |value| {
+        let kc = kc.clone();
+        async move {
+            let auth = value.get("authorization").and_then(|v| v.as_str());
+            kc.verify_bearer(auth)
+                .await
+                .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+            Ok(Data::default())
+        }
+    })
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -42,20 +56,20 @@ async fn main() {
     let ch = ClickHouse::from_env();
     let _ = ch.ensure_schema().await;
     let gql = graph_schema();
-    let kc = Keycloak::from_env();
+    let kc = Arc::new(Keycloak::from_env());
 
     let state = AppState {
         nest_graphql: std::env::var("NEST_GRAPHQL_URL")
             .unwrap_or_else(|_| "http://127.0.0.1:4000/graphql".into()),
         ch: Arc::new(ch),
         gql: gql.clone(),
-        kc: Arc::new(kc),
+        kc: kc.clone(),
     };
 
     let app = Router::new()
         .route("/health", get(health))
         .route("/graphql", post(graphql_handler))
-        .route_service("/graphql/ws", GraphQLSubscription::new(gql))
+        .route_service("/graphql/ws", ws_service(gql, kc))
         .route("/v1/metrics/pue", post(calc_pue))
         .route("/v1/metrics/wue", post(calc_wue))
         .route("/v1/redfish/snapshot", post(redfish_snapshot))

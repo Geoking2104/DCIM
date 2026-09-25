@@ -33,7 +33,15 @@ function makeWsLink() {
       lazy: true,
       retryAttempts: 8,
       shouldRetry: () => true,
-      connectionParams: () => ({})
+      connectionParams: async () => {
+        try {
+          const res = await fetch('/api/auth/ws-params', { credentials: 'same-origin' });
+          if (!res.ok) return {};
+          return await res.json();
+        } catch {
+          return {};
+        }
+      }
     })
   );
 }

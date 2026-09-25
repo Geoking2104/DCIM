@@ -132,7 +132,7 @@ export default function PatchJournal({ locale }: { locale: string }) {
             <div className="text-[15px] font-bold">{d.action === 'replace' ? 'Remplacement' : 'Conservation'}</div>
             <div className="text-[13px] text-[#444]">{d.actor}</div>
             <div className="text-[12px] font-mono text-[#706E6B]">{d.aId} ↔ {d.bId}</div>
-            <a className="text-[12px] text-[#0176D3]" href={`/${locale}/graphe-reseau`}>Voir le graphe</a>
+            <a className="text-[12px] text-[#0176D3]" href={`/${locale}/graphe-reseau?a=${encodeURIComponent(d.aId)}&b=${encodeURIComponent(d.bId)}`}>Voir le graphe</a>
           </li>
         ))}
       </ol>

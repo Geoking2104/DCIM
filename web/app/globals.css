@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root{ --slds-blue:#032D60; --slds-bright:#0176D3; }
+.slds-card{ background:#fff; border:1px solid #E5E5E5; border-radius:0.25rem; box-shadow:0 1px 1px rgba(0,0,0,0.04); }
+.slds-badge{ display:inline-flex; align-items:center; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; }

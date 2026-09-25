@@ -2,6 +2,10 @@ import '../globals.css';
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages} from 'next-intl/server';
 
+export function generateStaticParams() {
+  return [{ locale: 'fr' }, { locale: 'en' }];
+}
+
 export default async function LocaleLayout({
   children,
   params: {locale}

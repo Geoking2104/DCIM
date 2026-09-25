@@ -1,18 +1,16 @@
-# Supervision Qinode — palier 1
+# Supervision Qinode
 
-Collecte : Telegraf (Redfish + SNMP lecture seule).
-Stockage : ClickHouse existant (`timeseries-db`).
-Alerte : plus tard (Prometheus overlay).
-Graphe : Neo4j, pas Telegraf.
+| Palier | Outil | Commande |
+| --- | --- | --- |
+| 1 Collecte | Telegraf SNMP/Redfish → ClickHouse | `--profile monitor` |
+| 2 Alerte | Prometheus scrape ClickHouse :9363 + Telegraf | `--profile monitor` (service prometheus) |
+| 3 GPU | DCGM exporter | plus tard |
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.monitor.yml up -d telegraf
+docker compose -f docker-compose.yml -f docker-compose.monitor.yml --profile monitor up -d
 ```
 
-Variables (ne pas committer les secrets BMC) :
+UI Prometheus : http://localhost:9090  
+PUE produit : `/fr/metriques` et `GET /api/metrics/live`
 
-- `REDFISH_HOST` `REDFISH_USER` `REDFISH_PASSWORD`
-- `SNMP_AGENT` (IP PDU / ToR) `SNMP_COMMUNITY`
-
-Telegraf écrit dans `dcim.power_metrics` via HTTP 8123.
-`GET /api/metrics/live` lit le dernier point.
+Grafana n’est pas lancé : ClickHouse reste l’historique, le site Next.js reste la face Qinode.

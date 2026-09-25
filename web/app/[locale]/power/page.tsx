@@ -12,6 +12,7 @@ export default function PowerPage({ params: { locale } }: { params: { locale: st
         <div className="flex items-center gap-2 text-[11px] text-[#706E6B]"><a href={`/${locale}`} className="hover:underline">Plateforme</a><span>/</span><span className="font-bold text-[#032D60]">Power Chain • Grid → Battery Cell</span></div>
         <h1 className="text-[28px] font-bold mt-2">Supervision Électrique Complète • SLDS Record Home</h1>
         <p className="text-[13px] text-[#444] max-w-[800px] mt-1">Traçabilité complète grid, groupe, UPS, PDU, rack, device, cellule batterie. Données temps réel ClickHouse (time-series) + Graph CSoT Neo4j (topologie). Blast-radius analysis si perte grid.</p>
+        <p className="mt-2 text-[13px]"><a className="text-[#0176D3] underline" href={`/${locale}/metriques">Ratios PUE / WUE / CUE / ERF →</a></p>
         <div className="mt-6">
           <PowerFlow/>
         </div>
@@ -30,7 +31,7 @@ WHERE now()-1h GROUP BY ts ORDER BY ts</pre>
             <BatteryTable rackId="RACK-05"/>
             <div className="slds-card p-3 text-[11px]">
               <div className="font-bold">Anomalie détectée • AIOps</div>
-              <div className="mt-1 text-[#444]">CELL-06 ΔT +8.4°C vs moyenne. Corrélation avec PDU-01 load 78%. Recommandation: vérifier connectique + airflow. Risque thermal-runaway 12% si &gt;40°C.</div>
+              <div className="mt-1 text-[#444]">CELL-06 ΔT +8.4°C vs moyenne. Corrélation avec PDU-01 load 78%. Recommandation: vérifier connectique + airflow. Risque thermal-runaway 12% si >40°C.</div>
               <div className="mt-2"><span className="slds-badge bg-[#0176D3] text-white">Local Ollama • Qdrant RAG</span></div>
             </div>
           </div>
@@ -40,7 +41,7 @@ WHERE now()-1h GROUP BY ts ORDER BY ts</pre>
           <div className="mt-2 flex gap-2 text-[11px] flex-wrap">
             <code className="px-2 py-1 bg-[#FAFAF9] border rounded">Redpanda topic: power.metrics</code>
             <code className="px-2 py-1 bg-[#FAFAF9] border rounded">ClickHouse table: dcim.power_metrics (MergeTree)</code>
-            <code className="px-2 py-1 bg-[#FAFAF9] border rounded">Neo4j: (:Grid)-[:FEEDS]-&gt;(:UPS)-[:FEEDS]-&gt;(:PDU)-[:FEEDS]-&gt;(:Rack)-[:CONTAINS]-&gt;(:BatteryCell)</code>
+            <code className="px-2 py-1 bg-[#FAFAF9] border rounded">Neo4j: (:Grid)-[:FEEDS]->(:UPS)-[:FEEDS]->(:PDU)-[:FEEDS]->(:Rack)-[:CONTAINS]->(:BatteryCell)</code>
           </div>
         </div>
       </div>

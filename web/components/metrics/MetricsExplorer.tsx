@@ -5,8 +5,8 @@ import MetricsLinks from '@/components/metrics/MetricsLinks';
 const CARDS = [
   { id: 'pue', title: 'PUE', formula: 'salle kWh / IT kWh', hint: '1.0 = parfait · <1.2 excellent', href: '/outils/pue' },
   { id: 'wue', title: 'WUE', formula: 'litres / IT kWh', hint: '<0.2 L/kWh = sobre', href: '/outils/wue' },
-  { id: 'cue', title: 'CUE', formula: 'kg CO₂ / IT kWh', hint: 'facteur réseau × PUE', href: '/eed' },
-  { id: 'erf', title: 'ERF', formula: 'chaleur réutilisée / salle', hint: '10 % 2026 · 15 % 2027 · 20 % 2028', href: '/eed' }
+  { id: 'cue', title: 'CUE', formula: 'kg CO₂ / IT kWh', hint: 'facteur réseau × PUE', href: '/outils/cue' },
+  { id: 'erf', title: 'ERF', formula: 'chaleur réutilisée / salle', hint: '10 % 2026 · 15 % 2027 · 20 % 2028', href: '/outils/erf' }
 ];
 
 export default function MetricsExplorer({ locale }: { locale: string }) {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="cool" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#02162F"/>
+      <stop offset="100%" stop-color="#014486"/>
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="900" fill="url(#cool)"/>
+  <g stroke="#3EC6FF" stroke-width="6" fill="none" opacity="0.7">
+    <path d="M80 200 C 280 200, 280 700, 480 700 S 680 200, 880 200 S 1080 700, 1320 700"/>
+    <path d="M80 260 C 280 260, 280 640, 480 640 S 680 260, 880 260 S 1080 640, 1320 640"/>
+  </g>
+  <circle cx="480" cy="700" r="18" fill="#3EC6FF"/>
+  <circle cx="880" cy="200" r="18" fill="#3EC6FF"/>
+  <text x="80" y="80" fill="#fff" font-family="Inter,Arial" font-size="32" font-weight="700">LIQUID COOLING LOOP</text>
+  <text x="80" y="120" fill="#9BD4FF" font-family="Inter,Arial" font-size="18">CDU • FLOW • ΔP • THERMAL MAP</text>
+</svg>

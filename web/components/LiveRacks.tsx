@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { classifyGraphQLError } from '@/lib/graphqlErrors';
 import { GRAPHQL_URL } from '@/lib/graphql';
 import GraphQLStatus from '@/components/GraphQLStatus';
+import OptimizedImage from '@/components/OptimizedImage';
 
 const RACKS_QUERY = gql`
   query Racks {
@@ -56,7 +57,7 @@ export default function LiveRacks(){
         <GraphQLStatus error={classified} loading={loading} live={live}/>
       </div>
       <div className="slds-card mt-3 overflow-hidden">
-        <img src="/images/img-0.svg" className="h-[160px] w-full object-cover" alt=""/>
+        <OptimizedImage src="/images/img-0.svg" alt="" width={1200} height={160} className="h-[160px] w-full object-cover" sizes="(max-width: 1440px) 100vw, 1440px" />
         <table className="w-full text-[12px]">
           <thead className="bg-[#FAFAF9] text-[11px] uppercase">
             <tr>
@@ -79,13 +80,6 @@ export default function LiveRacks(){
             ))}
           </tbody>
         </table>
-        {classified && (
-          <div className="p-3 text-[11px] bg-[#FFF9E6] border-t">
-            <div className="font-bold text-[#032D60]">{classified.title}</div>
-            <div className="mt-1 text-[#444]">{classified.detail}</div>
-            <code className="block mt-2 text-[10px] text-[#706E6B]">{classified.endpoint}</code>
-          </div>
-        )}
       </div>
     </div>
   )

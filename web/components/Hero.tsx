@@ -1,5 +1,6 @@
 'use client';
 import {useTranslations, useLocale} from 'next-intl';
+import OptimizedImage from '@/components/OptimizedImage';
 export default function Hero(){
   const t = useTranslations('hero');
   const locale = useLocale();
@@ -26,7 +27,7 @@ export default function Hero(){
         </div>
         <div className="relative">
           <div className="slds-card overflow-hidden">
-            <img src="/images/img-1.svg" alt="liquid cooling" className="h-[380px] w-full object-cover"/>
+            <OptimizedImage src="/images/img-1.svg" alt="Boucle liquid cooling — jumeau" width={720} height={380} priority className="h-[380px] w-full object-cover" sizes="(max-width: 1024px) 100vw, 45vw" />
             <div className="absolute top-4 right-4 slds-card p-3 w-[220px] shadow-lg">
               <div className="text-[11px] uppercase font-bold text-[#706E6B]">DIGITAL TWIN — LIVE</div>
               <div className="mt-2 space-y-2 text-[12px]">

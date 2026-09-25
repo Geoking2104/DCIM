@@ -1,7 +1,8 @@
 'use client';
 import { gql, useMutation, useQuery } from '@apollo/client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DISCOVERY_TOOLS } from '@/lib/discoveryTools';
+import { readLastRack, writeLastRack } from '@/lib/lastRack';
 
 const RACKS = gql`query DiscoRacks { racks { id name } }`;
 const DECISIONS = gql`query PatchDecisions { patchDecisions { id action actor at aId bId } }`;
@@ -37,6 +38,9 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
     () => (report?.conflicts || []).filter((c: any) => !dismissed.includes(`${c.wantedA?.id}-${c.wantedB?.id}`)),
     [report, dismissed]
   );
+
+  useEffect(() => { setRackId(readLastRack()); }, []);
+  useEffect(() => { writeLastRack(rackId); }, [rackId]);
 
   function parseCsv(text: string) {
     return text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.toLowerCase().startsWith('adevice'))

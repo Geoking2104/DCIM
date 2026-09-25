@@ -24,6 +24,8 @@ assignees: ""
 - [ ] Criterion 1
 - [ ] Criterion 2
 
+<!-- For regulated metrics, include boundary, units, formula/rule version, source quality, exact threshold tests, evidence, and approval flow. -->
+
 ## Test plan
 
 <!-- Describe automated tests, manual checks, supported environments, and edge cases. -->
@@ -32,6 +34,10 @@ assignees: ""
 - [ ] Integration or end-to-end tests
 - [ ] Manual verification
 - [ ] Accessibility, security, and performance checks as applicable
+- [ ] Cross-tenant negative tests where tenant-scoped data is involved
+- [ ] Calculation, unit conversion, boundary, and reconciliation tests where metrics are involved
+- [ ] Non-official/official artifact handling tests where EU labels are involved
+- [ ] Missing, stale, estimated, and disconnected sensor cases where telemetry or CDU data is involved
 
 ## Rollout considerations
 
@@ -47,5 +53,7 @@ assignees: ""
 - [ ] Tests pass
 - [ ] Code review is complete
 - [ ] Documentation is updated
+- [ ] Regulatory source and effective-date changes are documented
+- [ ] Evidence provenance and audit events are verified
 - [ ] Rollback or recovery approach is documented
 - [ ] Phase 3 validation issue is ready to be created

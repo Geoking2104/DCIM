@@ -38,6 +38,16 @@ assignees: ""
 - [ ] Requirement 1
 - [ ] Requirement 2
 
+## Regulatory, data, and tenant impact
+
+<!-- Link affected FRD requirement IDs. Identify jurisdictions, reporting periods, data boundaries, legal status, and review owner. -->
+
+- [ ] EED / Regulation 2024/1364 / PUE-WUE label impact assessed
+- [ ] Waste-heat or national-rule impact assessed
+- [ ] CDU/liquid-cooling signals and operating envelopes identified
+- [ ] Tenant isolation, allocation, partial PUE, or CSRD/ESRS impact assessed
+- [ ] Source provenance, retention, evidence, and audit needs defined
+
 ## Dependencies and risks
 
 <!-- Note known dependencies, constraints, assumptions, and risks. -->
@@ -52,4 +62,6 @@ assignees: ""
 - [ ] Scope and requirements are agreed
 - [ ] Success criteria are measurable
 - [ ] Dependencies and risks are documented
+- [ ] Applicable regulatory rules are sourced and versioned; previews are distinguished from official artifacts
+- [ ] Tenant and data-class boundaries are defined
 - [ ] Phase 2 implementation issue is ready to be created

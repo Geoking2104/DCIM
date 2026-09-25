@@ -34,6 +34,10 @@ assignees: ""
 
 <!-- Link dashboards, alerts, runbooks, and support guidance. -->
 
+- [ ] Data freshness, completeness, estimation, and reconciliation are monitored
+- [ ] Tenant authorization denials and possible cross-tenant exposure are monitored
+- [ ] Regulatory export, submission, official-label reconciliation, or CDU alarm health is monitored as applicable
+
 ## Rollback criteria and plan
 
 <!-- Define the conditions that trigger a rollback and the steps or owner responsible. -->
@@ -46,6 +50,9 @@ assignees: ""
 
 - [ ] Rollout completed successfully
 - [ ] Monitoring shows no unresolved regressions
+- [ ] Regulatory applicability and rule-set version were rechecked for the release date
+- [ ] Internal label previews cannot be mistaken for official EU labels
+- [ ] Tenant allocations reconcile to approved facility totals where applicable
 - [ ] Success criteria were evaluated
 - [ ] User and stakeholder feedback was reviewed
 - [ ] Follow-up issues were created

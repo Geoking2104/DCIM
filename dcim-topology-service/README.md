@@ -1,6 +1,12 @@
 # DCIM Topology Service
 
-NestJS GraphQL service for managing DCIM racks, devices, and their Neo4j topology relationships.
+NestJS GraphQL service for managing DCIM racks, devices, and their Neo4j topology relationships. It is the first implemented slice of the wider graph-first platform described in the [Functional Requirements](../docs/functional-requirements.md) and [Technical Architecture](../docs/technical-architecture.md).
+
+## Current scope
+
+This service currently implements rack and device topology plus real-time update events. CDU loops, meters, tenants, regulatory evidence, PUE/WUE calculations, labels, heat reuse, and CSRD/ESRS exports are target requirements and are **not yet implemented** by this service.
+
+Future topology types must retain effective dates and provenance so historical reporting snapshots remain reproducible. Tenant-scoped types and subscriptions must enforce authorization before they are exposed; filtering a shared event stream by client-supplied `tenantId` is not an authorization control.
 
 ## Requirements
 
@@ -79,3 +85,5 @@ The default broker is in-memory and is suitable for local development or a singl
 npm run build
 npm run start:prod
 ```
+
+Production readiness also requires OIDC authentication, tenant/asset authorization, managed secrets, TLS, audit logging, backups, and the controls listed in the platform architecture. The default password and in-memory PubSub mode are development conveniences only.

@@ -5,7 +5,8 @@ export const METRIC_LINKS = (locale: string) => [
   { href: `/${locale}/outils/cue`, label: 'CUE', path: '/outils/cue' },
   { href: `/${locale}/outils/erf`, label: 'ERF', path: '/outils/erf' },
   { href: `/${locale}/power`, label: 'Puissance live', path: '/power' },
-  { href: `/${locale}/eed`, label: 'Dossier EED', path: '/eed' }
+  { href: `/${locale}/eed`, label: 'Dossier EED', path: '/eed' },
+  { href: `/${locale}/supervision`, label: 'Supervision', path: '/supervision' }
 ];
 
 export default function MetricsLinks({ locale, current }: { locale: string; current?: string }) {

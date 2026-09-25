@@ -28,6 +28,16 @@ export default function OutilsPage({ params: { locale } }: { params: { locale: s
             <h2 className="mt-2 text-[22px] font-extrabold">Efficacité eau</h2>
             <p className="mt-2 text-[14px] text-slate-600">/{locale}/outils/wue</p>
           </a>
+          <a href={`/${locale}/outils/cue`} className="block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">CUE</div>
+            <h2 className="mt-2 text-[22px] font-extrabold">Carbone</h2>
+            <p className="mt-2 text-[14px] text-slate-600">/{locale}/outils/cue</p>
+          </a>
+          <a href={`/${locale}/outils/erf`} className="block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">ERF</div>
+            <h2 className="mt-2 text-[22px] font-extrabold">Chaleur réutilisée</h2>
+            <p className="mt-2 text-[14px] text-slate-600">/{locale}/outils/erf</p>
+          </a>
           <a href={`/${locale}/outils/decouverte`} className="md:col-span-2 block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
             <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">Réseau</div>
             <h2 className="mt-2 text-[22px] font-extrabold">Découverte LLDP · SNMP · Redfish · CSV</h2>

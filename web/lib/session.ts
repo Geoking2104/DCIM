@@ -17,27 +17,48 @@ async function hmac(value: string) {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function createSessionToken(email: string, roles: string[] = []) {
+function b64url(obj: unknown) {
+  const s = JSON.stringify(obj);
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromB64url(s: string) {
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  return JSON.parse(bin);
+}
+
+export async function createSessionToken(
+  email: string,
+  roles: string[] = [],
+  groups: string[] = [],
+  tenants: string[] = []
+) {
   const exp = Date.now() + TTL_MS;
-  const roleStr = roles.join(',');
-  const payload = `${email}|${exp}|${roleStr}`;
-  return `${payload}|${await hmac(payload)}`;
+  const payload = b64url({ email, exp, roles, groups, tenants });
+  return `${payload}.${await hmac(payload)}`;
 }
 
 export async function readSessionToken(token?: string | null) {
   if (!token) return null;
-  const parts = token.split('|');
-  if (parts.length < 3) return null;
-  const email = parts[0];
-  const exp = Number(parts[1]);
-  const roleStr = parts.length >= 4 ? parts[2] : '';
-  const sig = parts.length >= 4 ? parts.slice(3).join('|') : parts.slice(2).join('|');
-  const payload = parts.length >= 4 ? `${email}|${exp}|${roleStr}` : `${email}|${exp}`;
-  if (!email || !exp || Date.now() > exp) return null;
-  const expected = await hmac(payload);
-  if (expected !== sig) return null;
-  const roles = roleStr ? roleStr.split(',').filter(Boolean) : ['qinode-operator'];
-  return { email, exp, roles };
+  if (token.includes('.')) {
+    const [payload, sig] = token.split('.');
+    if (!payload || !sig) return null;
+    if ((await hmac(payload)) !== sig) return null;
+    const data = fromB64url(payload);
+    if (!data?.email || !data.exp || Date.now() > data.exp) return null;
+    return {
+      email: data.email as string,
+      exp: data.exp as number,
+      roles: (data.roles as string[]) || [],
+      groups: (data.groups as string[]) || [],
+      tenants: (data.tenants as string[]) || []
+    };
+  }
+  return null;
 }
 
 export function sessionCookieName() {

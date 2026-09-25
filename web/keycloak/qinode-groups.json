@@ -1,0 +1,31 @@
+{
+  "realm": "qinode",
+  "groups": [
+    { "name": "qinode", "path": "/qinode", "subGroups": [
+      { "name": "admins", "path": "/qinode/admins" },
+      { "name": "ops", "path": "/qinode/ops" },
+      { "name": "energy", "path": "/qinode/energy" },
+      { "name": "compliance", "path": "/qinode/compliance" },
+      { "name": "viewers", "path": "/qinode/viewers" }
+    ]},
+    { "name": "tenants", "path": "/tenants", "subGroups": [
+      { "name": "paris-east", "path": "/tenants/paris-east" },
+      { "name": "lille", "path": "/tenants/lille" }
+    ]}
+  ],
+  "mappers": {
+    "clientScope": "profile",
+    "protocolMapper": {
+      "name": "groups",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-group-membership-mapper",
+      "config": {
+        "full.path": "true",
+        "id.token.claim": "true",
+        "access.token.claim": "true",
+        "userinfo.token.claim": "true",
+        "claim.name": "groups"
+      }
+    }
+  }
+}

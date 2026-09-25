@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Identifiants incorrects' }, { status: 401 });
   }
 
-  const token = await createSessionToken(email.toLowerCase(), [ROLES.ADMIN, ROLES.OPERATOR]);
+  const token = await createSessionToken(
+    email.toLowerCase(),
+    [ROLES.ADMIN, ROLES.OPERATOR],
+    ['/qinode/admins', '/qinode/ops'],
+    []
+  );
   const res = NextResponse.json({ ok: true, next });
   res.cookies.set({
     name: sessionCookieName(),

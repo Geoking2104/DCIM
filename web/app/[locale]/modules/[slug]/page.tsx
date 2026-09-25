@@ -1,16 +1,22 @@
-import { notFound } from 'next/navigation';
+import Providers from '@/components/Providers';
 import ModulePage from '@/components/ModulePage';
 import { MODULE_SLUGS, getModule } from '@/lib/modules';
 
-export function generateStaticParams() {
-  return MODULE_SLUGS.map((slug) => ({ slug }));
-}
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export default function Page({
-  params: { locale, slug }
+  params
 }: {
-  params: { locale: string; slug: string };
+  params: { locale?: string; slug?: string };
 }) {
-  if (!getModule(slug, locale)) notFound();
-  return <ModulePage locale={locale} slug={slug} />;
+  const locale = params?.locale || 'fr';
+  const slug = params?.slug || 'actifs';
+  const mod = getModule(slug, locale);
+  const safeSlug = mod ? slug : 'actifs';
+  return (
+    <Providers>
+      <ModulePage locale={locale} slug={safeSlug} />
+    </Providers>
+  );
 }

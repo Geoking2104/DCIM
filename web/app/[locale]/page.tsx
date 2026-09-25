@@ -7,21 +7,9 @@ import DigitalTwin from '@/components/DigitalTwin';
 import Compliance from '@/components/Compliance';
 import Architecture from '@/components/Architecture';
 import Providers from '@/components/Providers';
+import { MODULE_SLUGS, MODULES_FR } from '@/lib/modules';
 
-const MODULES = [
-  'Actifs',
-  'Capacité',
-  'Changement',
-  'Énergie',
-  'Environnement',
-  'Puissance',
-  '3D',
-  'Sécurité',
-  'BI',
-  'Connectivités'
-];
-
-export default function Page(){
+export default function Page({ params: { locale } }: { params: { locale: string } }) {
   return (
     <Providers>
       <Header/>
@@ -29,8 +17,10 @@ export default function Page(){
       <div className="bg-[#FAFAF9] border-b">
         <div className="max-w-[1440px] mx-auto px-6 py-3 flex flex-wrap items-center gap-2 text-[12px]">
           <span className="font-bold uppercase text-[11px] tracking-wide mr-2">Modules Qinode</span>
-          {MODULES.map((m) => (
-            <span key={m} className="px-3 py-1 bg-white border rounded">{m}</span>
+          {MODULE_SLUGS.map((slug) => (
+            <a key={slug} href={`/${locale}/modules/${slug}`} className="px-3 py-1 bg-white border rounded hover:border-[#0176D3]">
+              {MODULES_FR[slug].title.replace('Gestion des ', '').replace('Gestion de la ', '').replace('Gestion de l’', '').replace('Gestion du ', '')}
+            </a>
           ))}
         </div>
       </div>

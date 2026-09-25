@@ -1,36 +1,44 @@
 version: "3.8"
 
 services:
-  # --- GRAPH DATABASE (Source of Truth) ---
+  qinode-gateway:
+    build:
+      context: ./crates
+      dockerfile: Dockerfile
+    container_name: qinode-gateway
+    ports:
+      - "8088:8088"
+    environment:
+      - LISTEN=0.0.0.0:8088
+      - NEST_GRAPHQL_URL=http://host.docker.internal:4000/graphql
+
   graph-db:
     image: neo4j:5.12-community
     container_name: dcim-graph-db
     ports:
-      - "7474:7474" # HTTP Browser
-      - "7687:7687" # Bolt Protocol
+      - "7474:7474"
+      - "7687:7687"
     environment:
       - NEO4J_AUTH=neo4j/dcim_secure_password
       - NEO4J_PLUGINS=["apoc"]
     volumes:
       - neo4j_data:/data
 
-  # --- TIME-SERIES DATABASE (Telemetry & BMS) ---
   timeseries-db:
     image: clickhouse/clickhouse-server:23.8
     container_name: dcim-timeseries-db
     ports:
-      - "8123:8123" # HTTP Interface
-      - "9000:9000" # Native Client
+      - "8123:8123"
+      - "9000:9000"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
 
-  # --- STREAM BROKER (Telemetry Event Bus) ---
   event-bus:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.1
     container_name: dcim-event-bus
     ports:
-      - "9092:9092" # Kafka API Port
-      - "9644:9644" # Admin API
+      - "9092:9092"
+      - "9644:9644"
     command:
       - redpanda
       - start
@@ -44,17 +52,15 @@ services:
       - --advertise-kafka-addr
       - PLAINTEXT://event-bus:29092,OUTSIDE://localhost:9092
 
-  # --- VECTOR DATABASE (Local RAG) ---
   vector-db:
     image: qdrant/qdrant:v1.6.1
     container_name: dcim-vector-db
     ports:
-      - "6333:6333" # REST API
-      - "6334:6334" # gRPC Interface
+      - "6333:6333"
+      - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
 
-  # --- LOCAL AIR-GAPPED LLM INFERENCE ---
   ai-engine:
     image: ollama/ollama:latest
     container_name: dcim-ai-engine
@@ -62,13 +68,7 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    profiles: ["gpu"]
 
 volumes:
   neo4j_data:

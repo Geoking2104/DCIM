@@ -1,13 +1,21 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose';
 import { KeycloakUser, rolesFromPayload, tenantsFromGroups } from './keycloak-user';
 
 @Injectable()
 export class KeycloakService {
+  private readonly log = new Logger(KeycloakService.name);
   private jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
   issuer() {
     return (process.env.KEYCLOAK_ISSUER || '').replace(/\/$/, '');
+  }
+
+  jwksUri() {
+    if (process.env.KEYCLOAK_JWKS_URI) return process.env.KEYCLOAK_JWKS_URI;
+    const iss = this.issuer();
+    if (!iss) return '';
+    return `${iss}/protocol/openid-connect/certs`;
   }
 
   enabled() {
@@ -16,7 +24,13 @@ export class KeycloakService {
 
   private getJwks() {
     if (!this.jwks) {
-      this.jwks = createRemoteJWKSet(new URL(`${this.issuer()}/protocol/openid-connect/certs`));
+      const uri = this.jwksUri();
+      if (!uri) throw new UnauthorizedException('KEYCLOAK_JWKS_URI / ISSUER manquant');
+      this.log.log(`JWKS ${uri}`);
+      this.jwks = createRemoteJWKSet(new URL(uri), {
+        cooldownDuration: Number(process.env.KEYCLOAK_JWKS_COOLDOWN_MS || 30_000),
+        cacheMaxAge: Number(process.env.KEYCLOAK_JWKS_CACHE_MS || 600_000),
+      });
     }
     return this.jwks;
   }
@@ -29,11 +43,15 @@ export class KeycloakService {
       const verified = await jwtVerify(token, this.getJwks(), {
         issuer: this.issuer(),
         audience,
+        clockTolerance: Number(process.env.KEYCLOAK_CLOCK_TOLERANCE || 5),
       });
       payload = verified.payload;
     } catch (err) {
       try {
-        const verified = await jwtVerify(token, this.getJwks(), { issuer: this.issuer() });
+        const verified = await jwtVerify(token, this.getJwks(), {
+          issuer: this.issuer(),
+          clockTolerance: Number(process.env.KEYCLOAK_CLOCK_TOLERANCE || 5),
+        });
         payload = verified.payload;
         const aud = payload.aud;
         const list = Array.isArray(aud) ? aud : aud ? [aud] : [];
@@ -42,7 +60,7 @@ export class KeycloakService {
           throw err;
         }
       } catch {
-        throw new UnauthorizedException('JWT Keycloak invalide');
+        throw new UnauthorizedException('JWT Keycloak invalide (signature / iss / aud)');
       }
     }
     const raw = payload as Record<string, unknown>;

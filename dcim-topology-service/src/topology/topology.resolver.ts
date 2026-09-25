@@ -38,6 +38,11 @@ export class TopologyResolver {
     return this.topologyService.getRackWithDevices(id);
   }
 
+  @Query(() => [Rack], { name: 'racks' })
+  async listRacks(): Promise<Rack[]> {
+    return this.topologyService.listRacks();
+  }
+
   @Subscription(() => Rack, {
     name: 'rackUpdated',
     filter: (

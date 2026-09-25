@@ -31,7 +31,6 @@ export class TopologyService {
     };
 
     await this.pubSub.publish(TopologyEvents.RACK_UPDATED, { rackUpdated: rack });
-
     return rack;
   }
 
@@ -71,6 +70,17 @@ export class TopologyService {
     return device;
   }
 
+  async listRacks(): Promise<Rack[]> {
+    const cypher = `
+      MATCH (r:Rack)
+      OPTIONAL MATCH (d:Device)-[:INSTALLED_IN]->(r)
+      RETURN r, collect(d) AS devices
+      ORDER BY r.name
+    `;
+    const result = await this.neo4jService.read(cypher, {});
+    return result.records.map((record) => this.mapRackRecord(record));
+  }
+
   async getRackWithDevices(rackId: string): Promise<Rack> {
     const cypher = `
       MATCH (r:Rack {id: $rackId})
@@ -83,8 +93,12 @@ export class TopologyService {
       throw new NotFoundException(`Rack ${rackId} not found`);
     }
 
-    const rackProperties = result.records[0].get('r').properties;
-    const deviceNodes = result.records[0].get('devices');
+    return this.mapRackRecord(result.records[0]);
+  }
+
+  private mapRackRecord(record: any): Rack {
+    const rackProperties = record.get('r').properties;
+    const deviceNodes = record.get('devices');
     const devices: Device[] = deviceNodes
       .filter((node: { properties?: Record<string, unknown> }) => node.properties)
       .map((node: { properties: Record<string, any> }) => ({

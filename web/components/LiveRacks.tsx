@@ -1,55 +1,91 @@
 'use client';
 import { useQuery, gql } from '@apollo/client';
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
+import { classifyGraphQLError } from '@/lib/graphqlErrors';
+import { GRAPHQL_URL } from '@/lib/graphql';
+import GraphQLStatus from '@/components/GraphQLStatus';
 
-const RACKS_QUERY = gql`query Racks { racks { id name powerLoad capacity pue temperature status } }`;
+const RACKS_QUERY = gql`
+  query Racks {
+    racks {
+      id
+      name
+      heightU
+      siteId
+      devices { id name model startU heightU }
+    }
+  }
+`;
 
 const mock = [
-  {id:'RACK-01', powerLoad:0.21, capacity:0.34, pue:1.18, temperature:38, status:'Active'},
-  {id:'RACK-02', powerLoad:0.28, capacity:0.34, pue:1.22, temperature:42, status:'Active'},
-  {id:'RACK-05', powerLoad:0.31, capacity:0.34, pue:1.41, temperature:67.4, status:'Hotspot'},
-  {id:'RACK-06', powerLoad:0.19, capacity:0.34, pue:1.15, temperature:36, status:'Active'},
+  {id:'RACK-01', name:'Row A / R01', heightU:42, siteId:'PAR-1', powerLoad:0.21, capacity:0.34, pue:1.18, temperature:38, status:'Active', devices:[] as any[]},
+  {id:'RACK-02', name:'Row A / R02', heightU:42, siteId:'PAR-1', powerLoad:0.28, capacity:0.34, pue:1.22, temperature:42, status:'Active', devices:[]},
+  {id:'RACK-05', name:'Row C / R05', heightU:42, siteId:'PAR-1', powerLoad:0.31, capacity:0.34, pue:1.41, temperature:67.4, status:'Hotspot', devices:[]},
+  {id:'RACK-06', name:'Row C / R06', heightU:42, siteId:'PAR-1', powerLoad:0.19, capacity:0.34, pue:1.15, temperature:36, status:'Active', devices:[]},
 ];
 
 export default function LiveRacks(){
-  const { data, error } = useQuery(RACKS_QUERY, {
-    pollInterval: 10000,
-    errorPolicy: 'ignore',
-    fetchPolicy: 'no-cache'
+  const { data, error, loading } = useQuery(RACKS_QUERY, {
+    pollInterval: 15000,
+    errorPolicy: 'all',
+    fetchPolicy: 'no-cache',
+    ssr: false
   });
-  const [racks, setRacks] = useState(mock);
-  const [connected, setConnected] = useState(false);
-  useEffect(() => {
-    if (data?.racks?.length) {
-      setRacks(data.racks);
-      setConnected(true);
-    }
-  }, [data]);
+
+  const classified = useMemo(
+    () => error ? classifyGraphQLError(error, GRAPHQL_URL) : null,
+    [error]
+  );
+
+  const live = Boolean(data?.racks);
+  const racks = live
+    ? data.racks.map((r: any) => ({
+        ...r,
+        status: (r.devices?.length || 0) > 0 ? 'Active' : 'Empty',
+        temperature: '—',
+        pue: '—',
+        powerLoad: r.devices?.length || 0,
+        capacity: r.heightU
+      }))
+    : mock;
+
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h3 className="font-bold text-[16px]">Operations • Data Table</h3>
-        <span className={`slds-badge ${connected?'bg-[#E6F8E9] text-[#0B7E25]':'bg-[#FFF0C2]'}`}>{connected?'GraphQL LIVE':'MOCK'}</span>
+        <GraphQLStatus error={classified} loading={loading} live={live}/>
       </div>
       <div className="slds-card mt-3 overflow-hidden">
         <img src="/images/img-0.svg" className="h-[160px] w-full object-cover" alt=""/>
         <table className="w-full text-[12px]">
           <thead className="bg-[#FAFAF9] text-[11px] uppercase">
-            <tr><th className="p-2.5 text-left">Rack</th><th className="p-2.5">Load</th><th className="p-2.5">PUE</th><th className="p-2.5">Temp</th><th className="p-2.5">Status</th></tr>
+            <tr>
+              <th className="p-2.5 text-left">Rack</th>
+              <th className="p-2.5">Site</th>
+              <th className="p-2.5">U</th>
+              <th className="p-2.5">{live ? 'Devices' : 'Load'}</th>
+              <th className="p-2.5">Status</th>
+            </tr>
           </thead>
           <tbody className="divide-y">
-            {racks.map(r=>(
+            {racks.map((r: any)=>(
               <tr key={r.id} className={r.status==='Hotspot'?'bg-[#FFF9E6]':''}>
-                <td className="p-2.5 font-medium">{r.id}</td>
-                <td className="p-2.5">{r.powerLoad}/{r.capacity} MW</td>
-                <td className="p-2.5">{r.pue}</td>
-                <td className="p-2.5">{r.temperature}°C</td>
+                <td className="p-2.5 font-medium">{r.name || r.id}</td>
+                <td className="p-2.5">{r.siteId || '—'}</td>
+                <td className="p-2.5">{r.heightU || '—'}</td>
+                <td className="p-2.5">{live ? r.powerLoad : `${r.powerLoad}/${r.capacity} MW`}</td>
                 <td className="p-2.5"><span className="slds-badge bg-[#E6F8E9]">{r.status}</span></td>
               </tr>
             ))}
           </tbody>
         </table>
-        {error && <div className="p-2 text-[11px] bg-[#FFF0F0] text-[#C23934]">GraphQL offline — fallback mock</div>}
+        {classified && (
+          <div className="p-3 text-[11px] bg-[#FFF9E6] border-t">
+            <div className="font-bold text-[#032D60]">{classified.title}</div>
+            <div className="mt-1 text-[#444]">{classified.detail}</div>
+            <code className="block mt-2 text-[10px] text-[#706E6B]">{classified.endpoint}</code>
+          </div>
+        )}
       </div>
     </div>
   )

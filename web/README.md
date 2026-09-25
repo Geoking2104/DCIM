@@ -1,13 +1,31 @@
 # DCIM Web — Qinode.eu Next.js UI
 
-Bilingual (FR/EN) Next.js 14 operations and product UI for the DCIM platform.
+Bilingual (FR/EN) Next.js 14 product and operations UI for Qinode DCIM.
 
-It covers:
+## Surfaces
 
-- Marketing / platform overview (`/[locale]`)
-- Power-chain supervision (`/[locale]/power`) — Grid → UPS → PDU → rack → battery cell
-- Live rack table via GraphQL (`NEXT_PUBLIC_GRAPHQL_URL`)
-- ClickHouse proxies under `/api/clickhouse/{power,battery}`
+| Surface | Route |
+| --- | --- |
+| Marketing home | `/[locale]` |
+| Plateforme | `/[locale]/plateforme` |
+| Métriques PUE · WUE · CUE · ERF | `/[locale]/metriques` |
+| Calculatrices | `/[locale]/outils/pue` `wue` `cue` `erf` |
+| Découverte réseau | `/[locale]/outils/decouverte` |
+| Puissance live | `/[locale]/power` |
+| EED / label A–G (preview) | `/[locale]/eed` |
+| Supervision + inbox Grafana | `/[locale]/supervision` |
+| Graphe / racks / journal | `/[locale]/graphe-reseau` `topologie` `journal-brassage` |
+
+Carte détaillée : [METRICS.md](METRICS.md).
+
+## APIs Next
+
+- `POST /api/metrics/{pue,wue,cue,erf}` — calcul période (sidecar Rust puis fallback JS)
+- `GET /api/metrics/live?rack=` — PUE instantané ClickHouse (`grid_kw / rack_kw`, `official: false`)
+- `GET /api/clickhouse/{power,battery}` — séries 60 min
+- `GET|POST /api/alerts` — webhook Grafana → mémoire ou table `dcim.alerts`
+
+Le rack affiché par `LivePue` suit `localStorage qinode.lastRack` (`lib/lastRack.ts`).
 
 ## Stack
 
@@ -19,15 +37,10 @@ It covers:
 
 ## Local run
 
-From the repository root, start the data plane:
+From the repository root:
 
 ```bash
 docker compose up -d
-```
-
-Then start the UI:
-
-```bash
 cd web
 cp .env.example .env.local
 npm install
@@ -36,14 +49,20 @@ npm run dev
 
 Open http://localhost:3000 (redirects to `/fr`).
 
-Power page: http://localhost:3000/fr/power
+Optional ops overlay (Grafana :3001, Prometheus :9090, Telegraf):
 
-If ClickHouse or GraphQL are not reachable, the UI falls back to mock telemetry so the screens still render.
+```bash
+docker compose -f docker-compose.yml -f docker-compose.monitor.yml --profile monitor up -d
+```
+
+See [../ops/MONITORING.md](../ops/MONITORING.md).
+
+If ClickHouse or GraphQL are not reachable, the UI falls back to mock telemetry.
 
 ## Environment
 
 | Variable | Default | Role |
 |---|---|---|
 | `NEXT_PUBLIC_GRAPHQL_URL` | `http://localhost:4000/graphql` | Topology service |
-| `CLICKHOUSE_URL` | `http://localhost:8123` | Time-series HTTP |
+| `CLICKHOUSE_URL` | `http://localhost:8123` | Time-series HTTP + persist alerts |
 | `CLICKHOUSE_DB` | `dcim` | Database name |

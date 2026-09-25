@@ -5,6 +5,9 @@ import { KeycloakUser } from '../auth/keycloak-user';
 import { Roles } from '../auth/roles.decorator';
 import { CreateDeviceInput } from './dto/create-device.input';
 import { CreateRackInput } from './dto/create-rack.input';
+import { MoveDeviceInput } from './dto/move-device.input';
+import { UpdateDeviceInput } from './dto/update-device.input';
+import { UpdateRackInput } from './dto/update-rack.input';
 import { Device } from './models/device.model';
 import { Rack } from './models/rack.model';
 import { WhoAmI } from './models/whoami.model';
@@ -41,23 +44,53 @@ export class TopologyResolver {
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Rack)
-  async createRack(@Args('input') input: CreateRackInput): Promise<Rack> {
+  createRack(@Args('input') input: CreateRackInput): Promise<Rack> {
     return this.topologyService.createRack(input);
   }
 
   @Roles('qinode-ops', 'qinode-admin')
+  @Mutation(() => Rack)
+  updateRack(@Args('input') input: UpdateRackInput): Promise<Rack> {
+    return this.topologyService.updateRack(input);
+  }
+
+  @Roles('qinode-admin')
+  @Mutation(() => Boolean)
+  deleteRack(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    return this.topologyService.deleteRack(id);
+  }
+
+  @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Device)
-  async createDeviceAndMount(@Args('input') input: CreateDeviceInput): Promise<Device> {
+  createDeviceAndMount(@Args('input') input: CreateDeviceInput): Promise<Device> {
     return this.topologyService.createDeviceAndMount(input);
   }
 
+  @Roles('qinode-ops', 'qinode-admin')
+  @Mutation(() => Device)
+  updateDevice(@Args('input') input: UpdateDeviceInput): Promise<Device> {
+    return this.topologyService.updateDevice(input);
+  }
+
+  @Roles('qinode-ops', 'qinode-admin')
+  @Mutation(() => Device)
+  moveDevice(@Args('input') input: MoveDeviceInput): Promise<Device> {
+    return this.topologyService.moveDevice(input);
+  }
+
+  @Roles('qinode-ops', 'qinode-admin')
+  @Mutation(() => Boolean)
+  unmountDevice(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    return this.topologyService.unmountDevice(id);
+  }
+
   @Query(() => Rack, { name: 'rack' })
-  async getRack(@Args('id', { type: () => ID }) id: string): Promise<Rack> {
+  getRack(@Args('id', { type: () => ID }) id: string): Promise<Rack> {
     return this.topologyService.getRackWithDevices(id);
   }
 
   @Query(() => [Rack], { name: 'racks' })
-  async listRacks(): Promise<Rack[]> {
+  listRacks(): Promise<Rack[]> {
     return this.topologyService.listRacks();
   }
 

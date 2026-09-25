@@ -29,6 +29,18 @@ export default function PatchJournal({ locale }: { locale: string }) {
     });
   }, [rows, filter, q]);
 
+  function exportCsv() {
+    const header = 'at,action,actor,aId,bId';
+    const body = visible.map((r: any) => [r.at, r.action, r.actor, r.aId, r.bId].join(',')).join('\n');
+    const blob = new Blob([`${header}\n${body}\n`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'journal-brassage.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="max-w-[960px] mx-auto px-6 py-8 space-y-8">
       <div className="flex justify-between gap-3 flex-wrap">
@@ -36,7 +48,10 @@ export default function PatchJournal({ locale }: { locale: string }) {
           <a href={`/${locale}/outils/decouverte`} className="text-[12px] text-[#0176D3]">← Découverte</a>
           <h1 className="text-[28px] font-extrabold mt-1">Journal des brassages</h1>
         </div>
-        <button type="button" onClick={() => refetch()} className="px-3 py-2 border rounded text-[13px] bg-white">Rafraîchir</button>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => refetch()} className="px-3 py-2 border rounded text-[13px] bg-white">Rafraîchir</button>
+          <button type="button" onClick={exportCsv} disabled={!visible.length} className="px-3 py-2 rounded text-[13px] bg-[#032D60] text-white disabled:opacity-40">Exporter CSV</button>
+        </div>
       </div>
       {error && <p className="text-[#C23934] text-[13px]">{error.message}</p>}
       {loading && <p className="text-[13px]">Chargement…</p>}

@@ -1,12 +1,15 @@
 import Header from '@/components/Header';
-import { MODULE_SLUGS, getModule, type ModuleSlug } from '@/lib/modules';
+import Providers from '@/components/Providers';
+import EedComplianceContainer from '@/components/eed/EedComplianceContainer';
+import { MODULE_SLUGS, getModule } from '@/lib/modules';
 
 export default function ModulePage({ locale, slug }: { locale: string; slug: string }) {
   const mod = getModule(slug, locale);
   if (!mod) return null;
   const home = `/${locale}`;
+  const showEed = slug === 'energie' || slug === 'analytique';
   return (
-    <>
+    <Providers>
       <Header/>
       <div className="max-w-[1440px] mx-auto px-6 py-8">
         <div className="text-[11px] text-[#706E6B] flex gap-2">
@@ -26,6 +29,7 @@ export default function ModulePage({ locale, slug }: { locale: string; slug: str
               </a>
             );
           })}
+          <a href={`${home}/eed`} className="px-3 py-1 text-[12px] border rounded bg-[#032D60] text-white">EED 2024/1364</a>
         </div>
         <div className="mt-8 grid lg:grid-cols-[1.15fr_0.85fr] gap-10">
           <div>
@@ -36,8 +40,8 @@ export default function ModulePage({ locale, slug }: { locale: string; slug: str
               {mod.points.map((p) => <li key={p} className="pl-4 border-l-2 border-[#0176D3]">{p}</li>)}
             </ul>
             <div className="mt-8 flex gap-3">
-              <a href={`${home}/power`} className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">Supervision énergie</a>
-              <a href={home} className="px-5 py-2.5 border rounded text-[13px]">Retour plateforme</a>
+              <a href={`${home}/eed`} className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">Tableau EED</a>
+              <a href={`${home}/power`} className="px-5 py-2.5 border rounded text-[13px]">Supervision énergie</a>
             </div>
           </div>
           <div className="slds-card p-4 bg-[#032D60] text-white font-mono text-[11px] overflow-auto">
@@ -45,6 +49,11 @@ export default function ModulePage({ locale, slug }: { locale: string; slug: str
             <pre className="whitespace-pre-wrap leading-relaxed">{mod.query}</pre>
           </div>
         </div>
+        {showEed && (
+          <div className="mt-10">
+            <EedComplianceContainer />
+          </div>
+        )}
         <div className="mt-10 grid lg:grid-cols-[1.7fr_1fr] gap-6">
           <div className="slds-card overflow-hidden">
             <div className="px-4 py-3 border-b flex justify-between items-center">
@@ -57,7 +66,7 @@ export default function ModulePage({ locale, slug }: { locale: string; slug: str
               </thead>
               <tbody className="divide-y">
                 {mod.rows.map((r, i) => (
-                  <tr key={i} className={String(r[r.length-1]).match(/Hotspot|bloqu|Watch|serrage|hausse/i) ? 'bg-[#FFF9E6]' : ''}>
+                  <tr key={i}>
                     {r.map((cell, j) => <td key={j} className={`p-2.5 ${j===0?'font-medium':''}`}>{cell}</td>)}
                   </tr>
                 ))}
@@ -75,6 +84,6 @@ export default function ModulePage({ locale, slug }: { locale: string; slug: str
       <footer className="border-t bg-white mt-10">
         <div className="max-w-[1440px] mx-auto px-6 py-6 text-[11px] text-[#706E6B]">© 2026 Qinode.eu • Pages illustratives — données de démonstration</div>
       </footer>
-    </>
+    </Providers>
   );
 }

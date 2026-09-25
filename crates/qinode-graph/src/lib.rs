@@ -75,10 +75,11 @@ struct MoveDeviceInput {
 }
 
 fn hydrate(store: &Store, mut rack: Rack) -> Rack {
+    let rid = rack.id.as_str().to_string();
     rack.devices = store
         .devices
         .values()
-        .filter(|d| d.rack_id.as_deref() == Some(rack.id.as_str()))
+        .filter(|d| d.rack_id.as_deref() == Some(rid.as_str()))
         .cloned()
         .collect();
     rack
@@ -119,25 +120,32 @@ impl MutationRoot {
 
     async fn update_rack(&self, ctx: &Context<'_>, input: UpdateRackInput) -> Result<Rack, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
-        let rack = store
-            .racks
-            .get_mut(input.id.as_str())
-            .ok_or_else(|| format!("Rack {} introuvable", input.id))?;
-        if let Some(n) = input.name {
-            rack.name = n;
+        let key = input.id.to_string();
+        {
+            let rack = store
+                .racks
+                .get_mut(&key)
+                .ok_or_else(|| format!("Rack {key} introuvable"))?;
+            if let Some(n) = input.name {
+                rack.name = n;
+            }
+            if let Some(h) = input.height_u {
+                rack.height_u = h;
+            }
+            if let Some(s) = input.site_id {
+                rack.site_id = s;
+            }
         }
-        if let Some(h) = input.height_u {
-            rack.height_u = h;
-        }
-        if let Some(s) = input.site_id {
-            rack.site_id = s;
-        }
-        Ok(hydrate(&store, rack.clone()))
+        let rack = store.racks.get(&key).cloned().unwrap();
+        Ok(hydrate(&store, rack))
     }
 
     async fn delete_rack(&self, ctx: &Context<'_>, id: ID) -> Result<bool, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
-        store.racks.remove(id.as_str()).ok_or_else(|| format!("Rack {id} introuvable"))?;
+        store
+            .racks
+            .remove(id.as_str())
+            .ok_or_else(|| format!("Rack {id} introuvable"))?;
         store.devices.retain(|_, d| d.rack_id.as_deref() != Some(id.as_str()));
         Ok(true)
     }

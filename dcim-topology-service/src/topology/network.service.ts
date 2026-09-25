@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Neo4jService } from '../neo4j/neo4j.service';
 import { DiscoverNetworkInput } from './dto/discover-network.input';
+import { BlastRadius, ImpactHop } from './models/impact.model';
 import { DiscoveryReport, NetworkLink, Port } from './models/port.model';
 
 @Injectable()
@@ -25,10 +26,7 @@ export class NetworkService {
     let portsCreated = 0;
     let linksCreated = 0;
     const links: NetworkLink[] = [];
-
-    const torPort = await this.ensurePort(tor.id, 'Eth1/1', '25G');
-    portsCreated += torPort.created ? 1 : 0;
-
+    await this.ensurePort(tor.id, 'Eth1/1', '25G');
     let i = 2;
     for (const dev of list.filter((d) => d.id !== tor.id)) {
       const nic = await this.ensurePort(dev.id, 'nic0', '25G');
@@ -39,14 +37,7 @@ export class NetworkService {
       links.push(linked.link);
       i += 1;
     }
-
-    return {
-      rackId: input.rackId,
-      source: input.source || 'lldp-sim',
-      portsCreated,
-      linksCreated,
-      links,
-    };
+    return { rackId: input.rackId, source: input.source || 'lldp-sim', portsCreated, linksCreated, links };
   }
 
   async linksForRack(rackId: string): Promise<NetworkLink[]> {
@@ -56,16 +47,38 @@ export class NetworkService {
        RETURN a, b, p.via AS via, p.id AS id`,
       { rackId },
     );
-    return result.records.map((rec) => {
-      const a = rec.get('a').properties;
-      const b = rec.get('b').properties;
-      return {
-        id: rec.get('id') || `${a.id}-${b.id}`,
-        via: rec.get('via') || 'lldp',
-        a: this.mapPort(a),
-        b: this.mapPort(b),
-      };
-    });
+    return result.records.map((rec) => ({
+      id: rec.get('id') || `${rec.get('a').properties.id}-${rec.get('b').properties.id}`,
+      via: rec.get('via') || 'lldp',
+      a: this.mapPort(rec.get('a').properties),
+      b: this.mapPort(rec.get('b').properties),
+    }));
+  }
+
+  async blastRadius(originId: string): Promise<BlastRadius> {
+    const result = await this.neo4j.read(
+      `MATCH (start) WHERE start.id = $originId
+       OPTIONAL MATCH path = (start)-[:HAS_PORT|PATCHED_TO|INSTALLED_IN*1..4]-(n)
+       WITH start, n, min(length(path)) AS hop
+       RETURN start, collect({id: n.id, labels: labels(n), name: coalesce(n.name, n.id), hop: hop}) AS hops`,
+      { originId },
+    );
+    if (result.records.length === 0) {
+      return { originId, hops: [{ id: originId, kind: 'unknown', label: originId, hop: 0 }] };
+    }
+    const hops: ImpactHop[] = [
+      { id: originId, kind: 'origin', label: originId, hop: 0 },
+      ...result.records[0]
+        .get('hops')
+        .filter((h: any) => h && h.id)
+        .map((h: any) => ({
+          id: h.id,
+          kind: Array.isArray(h.labels) ? String(h.labels[0] || 'Node') : 'Node',
+          label: String(h.name || h.id),
+          hop: Number(h.hop) || 1,
+        })),
+    ];
+    return { originId, hops };
   }
 
   private mapPort(p: Record<string, any>): Port {
@@ -84,8 +97,7 @@ export class NetworkService {
     const written = await this.neo4j.write(
       `MATCH (d:Device {id: $deviceId})
        CREATE (p:Port {id: $id, name: $name, speed: $speed, deviceId: $deviceId})
-       CREATE (d)-[:HAS_PORT]->(p)
-       RETURN p`,
+       CREATE (d)-[:HAS_PORT]->(p) RETURN p`,
       { deviceId, id, name, speed },
     );
     return { created: true, port: this.mapPort(written.records[0].get('p').properties) };
@@ -111,19 +123,13 @@ export class NetworkService {
     const id = randomUUID();
     const written = await this.neo4j.write(
       `MATCH (a:Port {id: $aId}), (b:Port {id: $bId})
-       CREATE (a)-[p:PATCHED_TO {id: $id, via: $via, at: datetime()}]->(b)
-       RETURN a, b, p`,
+       CREATE (a)-[p:PATCHED_TO {id: $id, via: $via, at: datetime()}]->(b) RETURN a, b, p`,
       { aId, bId, id, via },
     );
     const rec = written.records[0];
     return {
       created: true,
-      link: {
-        id,
-        via,
-        a: this.mapPort(rec.get('a').properties),
-        b: this.mapPort(rec.get('b').properties),
-      },
+      link: { id, via, a: this.mapPort(rec.get('a').properties), b: this.mapPort(rec.get('b').properties) },
     };
   }
 }

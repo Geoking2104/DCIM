@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { DISCOVERY_TOOLS } from '@/lib/discoveryTools';
 
 const RACKS = gql`query DiscoRacks { racks { id name } }`;
+const DECISIONS = gql`query PatchDecisions { patchDecisions { id action actor at aId bId } }`;
 const REPORT_FIELDS = `
   rackId source portsCreated linksCreated
   links { id via a { id name deviceId } b { id name deviceId } }
@@ -13,10 +14,7 @@ const DISCOVER = gql`mutation DiscoverNetwork($input: DiscoverNetworkInput!) { d
 const IMPORT = gql`mutation ImportPatches($input: ImportPatchesInput!) { importPatches(input: $input) { ${REPORT_FIELDS} } }`;
 const RESOLVE = gql`
   mutation ResolvePatch($input: ResolvePatchConflictInput!) {
-    resolvePatchConflict(input: $input) {
-      linksCreated
-      conflicts { reason }
-    }
+    resolvePatchConflict(input: $input) { linksCreated conflicts { reason } }
   }
 `;
 
@@ -24,6 +22,7 @@ const SAMPLE = 'aDevice,aPort,bDevice,bPort\ntor-c05,Eth1/2,srv-gpu-12,nic0\n';
 
 export default function DiscoveryWorkbench({ locale }: { locale: string }) {
   const { data } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
+  const { data: log, refetch: refetchLog } = useQuery(DECISIONS, { errorPolicy: 'all', ssr: false });
   const racks = data?.racks || [];
   const [rackId, setRackId] = useState('');
   const [tool, setTool] = useState<(typeof DISCOVERY_TOOLS)[number]['id']>('lldp');
@@ -52,6 +51,7 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
     if (!c.wantedA?.id || !c.wantedB?.id) return;
     await resolve({ variables: { input: { wantedAId: c.wantedA.id, wantedBId: c.wantedB.id, action } } });
     setDismissed((d) => [...d, `${c.wantedA.id}-${c.wantedB.id}`]);
+    void refetchLog();
   }
 
   return (
@@ -59,7 +59,6 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
       <div>
         <a href={`/${locale}/outils`} className="text-[12px] text-[#0176D3]">← Outils</a>
         <h1 className="text-[28px] font-extrabold mt-2">Outils de découverte réseau</h1>
-        <p className="text-[13px] text-[#444]">Conflit : conserver le brassage actuel ou le remplacer (rôle admin).</p>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {DISCOVERY_TOOLS.map((t) => (
@@ -108,6 +107,18 @@ export default function DiscoveryWorkbench({ locale }: { locale: string }) {
             ))}
           </ul>
         )}
+      </div>
+      <div className="slds-card p-5 bg-white">
+        <div className="text-[11px] uppercase font-bold text-[#706E6B]">Journal des décisions</div>
+        <ul className="mt-3 space-y-1 text-[13px] font-mono">
+          {(log?.patchDecisions || []).slice(0, 12).map((d: any) => (
+            <li key={d.id}>
+              <span className="text-[#706E6B]">{d.at?.slice(0, 19)}</span>{' '}
+              <b>{d.action}</b> {d.actor} · {d.aId.slice(0, 8)}…↔{d.bId.slice(0, 8)}…
+            </li>
+          ))}
+          {!log?.patchDecisions?.length && <li className="text-[#706E6B]">Aucune décision enregistrée.</li>}
+        </ul>
       </div>
     </div>
   );

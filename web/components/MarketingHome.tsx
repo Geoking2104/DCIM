@@ -18,6 +18,7 @@ const MODULES = [
 export default function MarketingHome({ locale }: { locale: string }) {
   const eed = `/${locale}/eed`;
   const maturite = `/${locale}/maturite`;
+  const outils = `/${locale}/outils`;
   const demo = 'mailto:contact@qinode.eu?subject=Demande%20de%20d%C3%A9mo%20Qinode';
 
   return (
@@ -27,6 +28,7 @@ export default function MarketingHome({ locale }: { locale: string }) {
           <a href={`/${locale}`} className="font-extrabold">QINODE<span className="text-[#0176D3]">.EU</span></a>
           <div className="flex gap-3 items-center text-[13px] font-semibold">
             <a href="#modules">Modules</a>
+            <a href={outils}>Calculs</a>
             <a href={maturite}>Diagnostic</a>
             <a href={eed} className="text-[#0176D3]">Dossier européen</a>
             <a href={demo} className="bg-[#0176D3] text-white px-4 py-2 rounded-full">Démo</a>
@@ -40,7 +42,7 @@ export default function MarketingHome({ locale }: { locale: string }) {
           <p className="mt-5 text-[18px] text-slate-600">On pose, on déplace, on refroidit, on prouve — sans tableur d’allée.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={maturite} className="bg-[#032D60] text-white px-7 py-3.5 rounded-full font-semibold">Faire le diagnostic</a>
-            <a href="#modules" className="border px-7 py-3.5 rounded-full font-semibold">Voir les modules</a>
+            <a href={outils} className="border px-7 py-3.5 rounded-full font-semibold">Calculer électricité et eau</a>
           </div>
         </div>
         <ModuleShot variant="eed" />

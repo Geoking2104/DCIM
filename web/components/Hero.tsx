@@ -1,7 +1,8 @@
 'use client';
-import {useTranslations} from 'next-intl';
+import {useTranslations, useLocale} from 'next-intl';
 export default function Hero(){
   const t = useTranslations('hero');
+  const locale = useLocale();
   return (
     <section className="bg-white border-b">
       <div className="max-w-[1440px] mx-auto px-6 py-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-10">
@@ -19,8 +20,8 @@ export default function Hero(){
             <div><div className="text-[11px] uppercase text-[#706E6B]">{t('kpi_nodes')}</div><div className="text-[18px] font-bold">12.4k</div></div>
           </div>
           <div className="mt-6 flex gap-3">
-            <button className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">{t('cta1')}</button>
-            <code className="px-4 py-2.5 bg-[#F3F3F3] border rounded text-[12px]">{t('cta2')}</code>
+            <a href={`/${locale}/eed`} className="px-5 py-2.5 bg-[#0176D3] text-white rounded font-semibold text-[13px]">Tableau EED</a>
+            <a href={`/${locale}/modules/actifs`} className="px-4 py-2.5 bg-[#F3F3F3] border rounded text-[12px]">{t('cta2')}</a>
           </div>
         </div>
         <div className="relative">

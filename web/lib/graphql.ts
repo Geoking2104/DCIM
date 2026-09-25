@@ -4,6 +4,7 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { onError } from '@apollo/client/link/error';
 import { createClient } from 'graphql-ws';
 import { classifyGraphQLError } from './graphqlErrors';
+import { setWsPhase } from './wsLifecycle';
 
 export const GRAPHQL_DIRECT = process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:4000/graphql';
 export const GRAPHQL_URL = typeof window === 'undefined' ? GRAPHQL_DIRECT : '/api/graphql';
@@ -41,6 +42,12 @@ function makeWsLink() {
         } catch {
           return {};
         }
+      },
+      on: {
+        connecting: () => setWsPhase('connecting'),
+        connected: () => setWsPhase('connected'),
+        closed: (ev) => setWsPhase('closed', String((ev as CloseEvent)?.reason || '')),
+        error: (err) => setWsPhase('error', err instanceof Error ? err.message : 'ws error')
       }
     })
   );

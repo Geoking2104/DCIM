@@ -1,5 +1,6 @@
 import { PubSub } from 'graphql-subscriptions';
 import { Device } from './models/device.model';
+import { TopologyLifecycleEvent } from './models/lifecycle-event.model';
 import { Rack } from './models/rack.model';
 
 export const PUB_SUB = Symbol('PUB_SUB');
@@ -7,17 +8,14 @@ export const PUB_SUB = Symbol('PUB_SUB');
 export enum TopologyEvents {
   RACK_UPDATED = 'rackUpdated',
   DEVICE_MOUNTED = 'deviceMounted',
+  LIFECYCLE = 'topologyLifecycle',
 }
 
 export interface TopologyEventPayloads {
   [event: string]: unknown;
-  [TopologyEvents.RACK_UPDATED]: {
-    rackUpdated: Rack;
-  };
-  [TopologyEvents.DEVICE_MOUNTED]: {
-    deviceMounted: Device;
-    rackId: string;
-  };
+  [TopologyEvents.RACK_UPDATED]: { rackUpdated: Rack };
+  [TopologyEvents.DEVICE_MOUNTED]: { deviceMounted: Device; rackId: string };
+  [TopologyEvents.LIFECYCLE]: { topologyLifecycle: TopologyLifecycleEvent };
 }
 
 export interface TopologyPubSub {

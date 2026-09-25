@@ -1,38 +1,40 @@
 'use client';
 import { useQuery, useSubscription, gql } from '@apollo/client';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { classifyGraphQLError } from '@/lib/graphqlErrors';
 import { GRAPHQL_URL } from '@/lib/graphql';
-import { RACK_UPDATED } from '@/lib/topologySubscriptions';
+import { TOPOLOGY_LIFECYCLE } from '@/lib/topologySubscriptions';
 import GraphQLStatus from '@/components/GraphQLStatus';
 import OptimizedImage from '@/components/OptimizedImage';
 
 const RACKS_QUERY = gql`
   query Racks {
     racks {
-      id
-      name
-      heightU
-      siteId
+      id name heightU siteId
       devices { id name model startU heightU }
     }
   }
 `;
 
 const mock = [
-  {id:'RACK-01', name:'Row A / R01', heightU:42, siteId:'PAR-1', powerLoad:0.21, capacity:0.34, pue:1.18, temperature:38, status:'Active', devices:[] as any[]},
-  {id:'RACK-05', name:'Row C / R05', heightU:42, siteId:'PAR-1', powerLoad:0.31, capacity:0.34, pue:1.41, temperature:67.4, status:'Hotspot', devices:[]},
+  {id:'RACK-01', name:'Row A / R01', heightU:42, siteId:'PAR-1', powerLoad:0.21, capacity:0.34, status:'Active', devices:[] as any[]},
+  {id:'RACK-05', name:'Row C / R05', heightU:42, siteId:'PAR-1', powerLoad:0.31, capacity:0.34, status:'Hotspot', devices:[]},
 ];
 
 export default function LiveRacks(){
+  const [lastEvent, setLastEvent] = useState<string>();
   const { data, error, loading, refetch } = useQuery(RACKS_QUERY, {
     pollInterval: 30000,
     errorPolicy: 'all',
     fetchPolicy: 'no-cache',
     ssr: false
   });
-  useSubscription(RACK_UPDATED, {
-    onData: () => { void refetch(); }
+  useSubscription(TOPOLOGY_LIFECYCLE, {
+    onData: ({ data: sub }) => {
+      const ev = sub.data?.topologyLifecycle;
+      if (ev?.kind) setLastEvent(`${ev.kind} ${ev.deviceId || ev.rackId || ''}`.trim());
+      void refetch();
+    }
   });
 
   const classified = useMemo(
@@ -54,7 +56,7 @@ export default function LiveRacks(){
     <div>
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-bold text-[16px]">Operations • Data Table</h3>
-        <GraphQLStatus error={classified} loading={loading} live={live}/>
+        <GraphQLStatus error={classified} loading={loading} live={live} lastEvent={lastEvent} />
       </div>
       <div className="slds-card mt-3 overflow-hidden">
         <OptimizedImage src="/images/img-0.svg" alt="" width={1200} height={160} className="h-[160px] w-full object-cover" sizes="(max-width: 1440px) 100vw, 1440px" />

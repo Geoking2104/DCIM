@@ -3,6 +3,7 @@ import { authEndpoints, redirectUri } from '@/lib/keycloak';
 import { createSessionToken, sessionCookieName } from '@/lib/session';
 import { extractKeycloakRoles, ROLES } from '@/lib/roles';
 import { extractKeycloakGroups, rolesFromGroups, tenantsFromGroups } from '@/lib/groups';
+import { permissionsFromGroups } from '@/lib/permissions';
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get('code');
@@ -48,14 +49,17 @@ export async function GET(req: NextRequest) {
   } catch {}
 
   const groups = extractKeycloakGroups(tokens.access_token);
-  const roleSet = new Set([
-    ...extractKeycloakRoles(tokens.access_token),
-    ...rolesFromGroups(groups)
-  ]);
-  const roles = roleSet.size ? Array.from(roleSet) : [ROLES.VIEWER];
+  const roles = Array.from(new Set([...extractKeycloakRoles(tokens.access_token), ...rolesFromGroups(groups)]));
   const tenants = tenantsFromGroups(groups);
+  const permissions = permissionsFromGroups(groups, roles);
 
-  const session = await createSessionToken(email, roles, groups, tenants);
+  const session = await createSessionToken({
+    email,
+    roles: roles.length ? roles : [ROLES.VIEWER],
+    groups,
+    tenants: tenants.length ? tenants : permissions.map((p) => p.slug),
+    permissions
+  });
   const dest = nextPath && nextPath.startsWith('/') ? nextPath : '/fr/plateforme';
   const res = NextResponse.redirect(new URL(dest, req.url));
   res.cookies.set({

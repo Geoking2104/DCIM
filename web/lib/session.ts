@@ -1,3 +1,5 @@
+import { permissionsFromGroups, TenantPerm } from '@/lib/permissions';
+
 const COOKIE = 'qinode_session';
 const TTL_MS = 1000 * 60 * 60 * 12;
 
@@ -27,38 +29,44 @@ function b64url(obj: unknown) {
 
 function fromB64url(s: string) {
   const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
-  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad);
-  return JSON.parse(bin);
+  return JSON.parse(atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad));
 }
 
-export async function createSessionToken(
-  email: string,
-  roles: string[] = [],
-  groups: string[] = [],
-  tenants: string[] = []
-) {
+export async function createSessionToken(input: {
+  email: string;
+  roles?: string[];
+  groups?: string[];
+  tenants?: string[];
+  permissions?: TenantPerm[];
+}) {
   const exp = Date.now() + TTL_MS;
-  const payload = b64url({ email, exp, roles, groups, tenants });
+  const permissions = input.permissions || permissionsFromGroups(input.groups || [], input.roles || []);
+  const tenants = input.tenants || permissions.map((p) => p.slug);
+  const payload = b64url({
+    email: input.email,
+    exp,
+    roles: input.roles || [],
+    groups: input.groups || [],
+    tenants,
+    permissions
+  });
   return `${payload}.${await hmac(payload)}`;
 }
 
 export async function readSessionToken(token?: string | null) {
-  if (!token) return null;
-  if (token.includes('.')) {
-    const [payload, sig] = token.split('.');
-    if (!payload || !sig) return null;
-    if ((await hmac(payload)) !== sig) return null;
-    const data = fromB64url(payload);
-    if (!data?.email || !data.exp || Date.now() > data.exp) return null;
-    return {
-      email: data.email as string,
-      exp: data.exp as number,
-      roles: (data.roles as string[]) || [],
-      groups: (data.groups as string[]) || [],
-      tenants: (data.tenants as string[]) || []
-    };
-  }
-  return null;
+  if (!token || !token.includes('.')) return null;
+  const [payload, sig] = token.split('.');
+  if ((await hmac(payload)) !== sig) return null;
+  const data = fromB64url(payload);
+  if (!data?.email || !data.exp || Date.now() > data.exp) return null;
+  return {
+    email: data.email as string,
+    exp: data.exp as number,
+    roles: (data.roles as string[]) || [],
+    groups: (data.groups as string[]) || [],
+    tenants: (data.tenants as string[]) || [],
+    permissions: (data.permissions as TenantPerm[]) || []
+  };
 }
 
 export function sessionCookieName() {

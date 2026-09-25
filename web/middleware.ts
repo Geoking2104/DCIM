@@ -1,7 +1,8 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { readSessionToken, sessionCookieName } from '@/lib/session';
-import { hasAnyRole, rolesForPath } from '@/lib/roles';
+import { canAccessPath, rolesOnTenant } from '@/lib/permissions';
+import { TENANT_COOKIE } from '@/lib/tenants';
 
 const intl = createMiddleware({
   locales: ['fr', 'en'],
@@ -23,13 +24,15 @@ export default async function middleware(req: NextRequest) {
       url.searchParams.set('next', pathname);
       return NextResponse.redirect(url);
     }
-    const needed = rolesForPath(pathname);
-    if (needed && !hasAnyRole(session.roles || [], needed)) {
+    const tenant = req.cookies.get(TENANT_COOKIE)?.value || session.tenants?.[0] || '';
+    const tenantRoles = rolesOnTenant(session.permissions || [], tenant, session.roles || []);
+    const effective = tenantRoles.length ? tenantRoles : session.roles || [];
+    if (!canAccessPath(pathname, effective)) {
       const locale = pathname.split('/')[1] || 'fr';
       const url = req.nextUrl.clone();
       url.pathname = `/${locale}/login`;
       url.searchParams.set('error', 'forbidden');
-      url.searchParams.set('need', needed.join(','));
+      url.searchParams.set('tenant', tenant);
       return NextResponse.redirect(url);
     }
   }

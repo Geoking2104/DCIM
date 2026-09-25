@@ -8,18 +8,20 @@ export async function POST(req: NextRequest) {
   const password = String(body.password || '');
   const next = String(body.next || '/fr/plateforme');
 
-  const userOk = email.toLowerCase() === expectedUser().toLowerCase();
-  const passOk = expectedPassword() && password === expectedPassword();
-  if (!userOk || !passOk) {
+  if (email.toLowerCase() !== expectedUser().toLowerCase() || !expectedPassword() || password !== expectedPassword()) {
     return NextResponse.json({ ok: false, error: 'Identifiants incorrects' }, { status: 401 });
   }
 
-  const token = await createSessionToken(
-    email.toLowerCase(),
-    [ROLES.ADMIN, ROLES.OPERATOR],
-    ['/qinode/admins', '/qinode/ops'],
-    []
-  );
+  const token = await createSessionToken({
+    email: email.toLowerCase(),
+    roles: [ROLES.ADMIN, ROLES.OPERATOR],
+    groups: ['/qinode/admins', '/tenants/paris-east/admins', '/tenants/lille/ops'],
+    tenants: ['paris-east', 'lille'],
+    permissions: [
+      { slug: 'paris-east', roles: [ROLES.ADMIN] },
+      { slug: 'lille', roles: [ROLES.OPERATOR] }
+    ]
+  });
   const res = NextResponse.json({ ok: true, next });
   res.cookies.set({
     name: sessionCookieName(),

@@ -2,56 +2,61 @@
   "nav": {
     "platform": "Platform",
     "power": "Power Supervision",
-    "cooling": "Liquid Cooling",
+    "cooling": "Environment",
     "compliance": "EU Compliance",
-    "twin": "Digital Twin",
+    "twin": "3D Visualization",
     "arch": "Architecture",
-    "demo": "Live demo",
+    "demo": "See Qinode in action",
     "whitepaper": "Whitepaper"
   },
   "hero": {
-    "badge1": "New • C(2026) 3472 FINAL READY",
-    "badge2": "Replaces 4 Straton tools",
-    "title1": "Sovereign DCIM,",
-    "title2": "AI-driven.",
-    "title3": "Your Cognitive Source of Truth.",
-    "subtitle": "Qinode.eu unifies what Straton DCIM integrates separately (Sunbird, Schneider EcoStruxure, NetBox, OpenDCIM) into one graph-first, European, air-gapped platform. Based on Geoking2104/DCIM.",
-    "cta1": "View live demo →",
-    "cta2": "docker compose up -d",
-    "kpi_pue": "PUE Live",
+    "badge1": "Monitoring • Operations",
+    "badge2": "Graph-first • EU sovereign",
+    "title1": "Qinode DCIM focuses",
+    "title2": "on the two biggest challenges",
+    "title3": "facing data center operators.",
+    "subtitle": "Real-time monitoring and operations in one view of racks, assets, PDUs, the power chain and the environment — down to the port and the battery cell. European, air-gapped, graph-first.",
+    "cta1": "See Qinode in action →",
+    "cta2": "Talk to an expert",
+    "kpi_pue": "Live PUE",
     "kpi_wue": "WUE Class",
     "kpi_cooling": "Cooling Flow",
-    "kpi_nodes": "Topology Nodes"
+    "kpi_nodes": "Mapped assets"
+  },
+  "modules": {
+    "label": "Qinode modules"
   },
   "capabilities": {
-    "eyebrow": "Pattern: Card Grid • SLDS 2",
-    "title": "What Straton explains, Qinode runs natively.",
+    "eyebrow": "One platform • Ten disciplines",
+    "title": "See everything, from the data hall floor down to the port and the cell.",
     "cards": [
-      {"k": "01 Graph-First CSoT", "t": "Blast-radius & dependencies", "d": "Spatial, electrical, cooling, network, app, tenant, contractual. Neo4j graph."},
-      {"k": "02 Power Chain", "t": "Grid → Battery cell", "d": "Grid, generator, UPS, PDU, rack, device, cell. Thermal-runaway detection."},
-      {"k": "03 Liquid Cooling", "t": "CDU • Loops • Leaks", "d": "Flow, supply/return T, ΔP, coolant quality, pumps, leaks."},
-      {"k": "04 Inventory Straton+", "t": "Native clickable mapping", "d": "Full asset inventory, cable tracking per rack, clickable zones, network→power, RBAC."},
-      {"k": "05 Capacity Planning", "t": "Auto critical thresholds", "d": "Space/power/cooling/bandwidth. Thresholds + alerts + AI prediction."},
-      {"k": "06 3D Digital Twin", "t": "WebGL + Thermal Maps", "d": "Sites, rooms, racks, power paths, liquid loops, heatmaps."},
-      {"k": "07 Local AIOps", "t": "Ollama • Qdrant • Air-gapped", "d": "Predictive maintenance, anomaly, placement, on-prem NL Copilot."},
-      {"k": "08 Agentless Discovery", "t": "No agent", "d": "gRPC, Modbus TCP, BACnet/IP, eBPF, Redfish, SNMPv3, LLDP/CDP, vision."}
+      {"k": "01 Assets", "t": "Asset management", "d": "Accurate, real-time views of the whole site: servers, storage, network, rack PDUs, patch panels and applications. Map physical relationships down to the port."},
+      {"k": "02 Capacity", "t": "Capacity management", "d": "A single database of connections and capacity. Space, weight, temperature, humidity, load, budgeted power and measured amps — no more floor walks."},
+      {"k": "03 Change", "t": "Change management", "d": "Change requests, automated device moves and a full audit trail of work orders to keep operations efficient and compliant."},
+      {"k": "04 Energy", "t": "Energy management", "d": "See how energy is consumed and where to save. Building meters, UPS, floor PDUs, busways and intelligent rack PDUs. Built-in ASHRAE cooling charts."},
+      {"k": "05 Environment", "t": "Environmental management", "d": "Spot hotspots, keep an optimal climate for IT and cut cooling energy without putting equipment at risk."},
+      {"k": "06 Power", "t": "Power management", "d": "Track power at any moment, down to the individual server with per-outlet metering. History and dashboards to decide, not just watch."},
+      {"k": "07 3D visualization", "t": "Digital twin", "d": "From an aerial floor view down to devices in a single cabinet. Power paths, liquid loops and thermal maps in one twin."},
+      {"k": "08 Security", "t": "Access and multi-tenant", "d": "Zones, granular role-based permissions, live feeds and reports so information stays in the right hands."},
+      {"k": "09 BI & Analytics", "t": "Decide on the data", "d": "Interactive dashboards and reports to surface load, PUE and capacity trends — and act before the incident."},
+      {"k": "10 Connectivity", "t": "Network and power chain", "d": "Synoptic view of the full chain. Impact search in one click: a port, a PDU, a rack, a tenant."}
     ]
   },
   "live": {
-    "title": "Operations • Data Table Pattern + Topology",
-    "timeline": "Activity Timeline Pattern",
+    "title": "Operations • Live rack view",
+    "timeline": "Activity log",
     "empty": "No unacknowledged critical alarm. System nominal."
   },
   "compliance": {
     "title": "EU-ready compliance. No greenwashing.",
-    "subtitle": "Designed to support reporting, not replace legal review. C(2026) 3472 final 21 Sep 2026 defines separate A-G PUE/WUE. OJ verification required. Internal preview ≠ official EU label."
+    "subtitle": "Built to support PUE/WUE reporting, not to replace legal review. C(2026) 3472 final 21 Sep 2026. OJ verification required. Internal preview ≠ official EU label."
   },
   "arch": {
     "title": "Sovereign local architecture",
-    "subtitle": "Edge → Redpanda → ClickHouse + Neo4j → Metrics → Compliance + GraphQL → WebGL + Qdrant/Ollama"
+    "subtitle": "Edge → Redpanda → ClickHouse + Neo4j → Metrics → Compliance + GraphQL → 3D twin + on-prem AI"
   },
   "power": {
-    "title": "Power Supervision",
-    "subtitle": "Grid → Battery Cell • Real-time ClickHouse + Graph CSoT"
+    "title": "Power supervision",
+    "subtitle": "Grid → Battery cell • Real-time metering and impact graph"
   }
 }

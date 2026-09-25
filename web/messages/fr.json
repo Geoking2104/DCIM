@@ -2,56 +2,61 @@
   "nav": {
     "platform": "Plateforme",
     "power": "Supervision Énergie",
-    "cooling": "Cooling Liquide",
+    "cooling": "Environnement",
     "compliance": "Conformité EU",
-    "twin": "Digital Twin",
+    "twin": "Visualisation 3D",
     "arch": "Architecture",
-    "demo": "Démo live",
+    "demo": "Voir Qinode en action",
     "whitepaper": "Livre Blanc"
   },
   "hero": {
-    "badge1": "Nouveau • C(2026) 3472 FINAL READY",
-    "badge2": "Remplace 4 outils Straton",
-    "title1": "Le DCIM souverain,",
-    "title2": "piloté par IA.",
-    "title3": "Votre Cognitive Source of Truth.",
-    "subtitle": "Qinode.eu unifie ce que Straton DCIM intègre séparément (Sunbird, Schneider EcoStruxure, NetBox, OpenDCIM) en une plateforme unique graph-first, européenne, air-gapped. Basée sur Geoking2104/DCIM.",
-    "cta1": "Voir la démo live →",
-    "cta2": "docker compose up -d",
+    "badge1": "Supervision • Opérations",
+    "badge2": "Graph-first • Souverain EU",
+    "title1": "Qinode DCIM se concentre",
+    "title2": "sur deux défis majeurs",
+    "title3": "des exploitants de datacenters.",
+    "subtitle": "La surveillance temps réel et les opérations : une vue unique de vos racks, assets, PDU, chaîne électrique et environnement — jusqu’au port et à la cellule batterie. Plateforme européenne, air-gapped, graph-first.",
+    "cta1": "Voir Qinode en action →",
+    "cta2": "Échanger avec un expert",
     "kpi_pue": "PUE Live",
     "kpi_wue": "WUE Classe",
     "kpi_cooling": "Cooling Flow",
-    "kpi_nodes": "Topology Nodes"
+    "kpi_nodes": "Assets cartographiés"
+  },
+  "modules": {
+    "label": "Modules Qinode"
   },
   "capabilities": {
-    "eyebrow": "Pattern: Card Grid • SLDS 2",
-    "title": "Ce que Straton explique, Qinode exécute en natif.",
+    "eyebrow": "Une plateforme • Dix disciplines",
+    "title": "Tout voir, du sol du datacenter jusqu’au port et à la cellule.",
     "cards": [
-      {"k": "01 Graph-First CSoT", "t": "Blast-radius & dépendances", "d": "Spatial, électrique, cooling, réseau, app, tenant, contractuel. Graph Neo4j."},
-      {"k": "02 Power Chain", "t": "Grid → Cellule batterie", "d": "Grid, groupe, UPS, PDU, rack, device, cellule. Thermal-runaway detect."},
-      {"k": "03 Liquid Cooling", "t": "CDU • Loops • Leaks", "d": "Débit, T supply/return, ΔP, qualité coolant, pompes, fuites."},
-      {"k": "04 Inventaire Straton+", "t": "Mapping cliquable natif", "d": "Inventaire assets, suivi câbles/rack, zones cliquables, réseau→alim, droits."},
-      {"k": "05 Capacity Planning", "t": "Seuils critiques auto", "d": "Espace/power/cooling/bandwidth. Seuils + alertes Straton + prédiction IA."},
-      {"k": "06 3D Digital Twin", "t": "WebGL + Thermal Maps", "d": "Sites, rooms, racks, power paths, liquid loops, heatmaps."},
-      {"k": "07 AIOps Local", "t": "Ollama • Qdrant • Air-gapped", "d": "Maintenance prédictive, anomaly, placement, Copilot NL on-prem."},
-      {"k": "08 Agentless Discovery", "t": "No agent", "d": "gRPC, Modbus TCP, BACnet/IP, eBPF, Redfish, SNMPv3, LLDP/CDP, vision."}
+      {"k": "01 Actifs", "t": "Gestion des actifs", "d": "Vues précises et temps réel de l’ensemble du site : serveurs, stockage, réseau, PDU de rack, panneaux de brassage et applications. Cartographiez les relations physiques jusqu’au niveau du port."},
+      {"k": "02 Capacité", "t": "Gestion de la capacité", "d": "Base centralisée des connexions et capacités. Espace, poids, température, humidité, charge, puissance budgétée et ampères mesurés — sans aller-retour salle."},
+      {"k": "03 Changement", "t": "Gestion du changement", "d": "Demandes de changement, déplacements d’appareils automatisés, piste d’audit complète des bons de travail pour la conformité et la productivité des équipes."},
+      {"k": "04 Énergie", "t": "Gestion de l’énergie", "d": "Comprendre où l’énergie est consommée et où économiser. Compteurs bâtiment, onduleurs, PDU d’étage, busways et PDU de rack intelligents. Graphiques ASHRAE intégrés."},
+      {"k": "05 Environnement", "t": "Gestion de l’environnement", "d": "Identifier les points chauds, maintenir un climat optimal pour l’IT et réduire l’énergie de refroidissement sans compromettre la sécurité des équipements."},
+      {"k": "06 Puissance", "t": "Gestion de la puissance", "d": "Suivez la puissance à tout instant, jusqu’au serveur, avec prise de mesure individuelle. Historisation et dashboards pour décider, pas seulement observer."},
+      {"k": "07 Visualisation 3D", "t": "Jumeau numérique", "d": "Vue aérienne du sol jusqu’aux appareils d’une armoire. Chemins électriques, boucles liquid cooling et cartes thermiques dans un seul jumeau."},
+      {"k": "08 Sécurité", "t": "Accès et multi-tenant", "d": "Zones, permissions granulaires par rôle, flux de surveillance et rapports temps réel pour garder l’information entre de bonnes mains."},
+      {"k": "09 BI & Analytique", "t": "Décider sur la donnée", "d": "Tableaux de bord et rapports interactifs pour découvrir des tendances de charge, de PUE et de capacité — et agir avant l’incident."},
+      {"k": "10 Connectivités", "t": "Chaîne réseau et électrique", "d": "Visualisation synoptique de toute la chaîne. Recherche d’impacts en un clic : un port, un PDU, un rack, un locataire."}
     ]
   },
   "live": {
-    "title": "Operations • Data Table Pattern + Topology",
-    "timeline": "Activity Timeline Pattern",
+    "title": "Opérations • Vue racks temps réel",
+    "timeline": "Journal d’activité",
     "empty": "Aucune alarme critique non acquittée. Système nominal."
   },
   "compliance": {
     "title": "Conformité EU prête. Pas de greenwashing.",
-    "subtitle": "Regulatory status du repo: conçu pour supporter le reporting, pas remplacer revue légale. C(2026) 3472 final du 21 sept 2026 définit A-G séparés PUE/WUE. Vérif JO requise. Preview interne ≠ label officiel EU."
+    "subtitle": "Conçu pour soutenir le reporting PUE/WUE, pas pour remplacer une revue légale. C(2026) 3472 final du 21 sept 2026. Vérification JO requise. Preview interne ≠ label officiel EU."
   },
   "arch": {
     "title": "Architecture locale souveraine",
-    "subtitle": "Edge → Redpanda → ClickHouse + Neo4j → Metrics → Compliance + GraphQL → WebGL + Qdrant/Ollama"
+    "subtitle": "Edge → Redpanda → ClickHouse + Neo4j → Métriques → Conformité + GraphQL → Jumeau 3D + IA on-prem"
   },
   "power": {
-    "title": "Supervision Électrique",
-    "subtitle": "Grid → Cellule batterie • ClickHouse temps réel + Graph CSoT"
+    "title": "Supervision électrique",
+    "subtitle": "Grid → Cellule batterie • Mesure temps réel et graphe d’impact"
   }
 }

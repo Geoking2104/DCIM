@@ -1,0 +1,15 @@
+services:
+  telegraf:
+    image: telegraf:1.32-alpine
+    container_name: dcim-telegraf
+    depends_on:
+      - timeseries-db
+    volumes:
+      - ./ops/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    environment:
+      SNMP_AGENT: ${SNMP_AGENT:-192.0.2.10}
+      SNMP_COMMUNITY: ${SNMP_COMMUNITY:-public}
+      REDFISH_HOST: ${REDFISH_HOST:-}
+      REDFISH_USER: ${REDFISH_USER:-}
+      REDFISH_PASSWORD: ${REDFISH_PASSWORD:-}
+    profiles: ["monitor"]

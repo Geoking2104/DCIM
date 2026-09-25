@@ -23,9 +23,7 @@ export async function GET(req: NextRequest) {
     redirect_uri: redirectUri(req.nextUrl.origin),
     code_verifier: verifier
   });
-  if (process.env.KEYCLOAK_CLIENT_SECRET) {
-    body.set('client_secret', process.env.KEYCLOAK_CLIENT_SECRET);
-  }
+  if (process.env.KEYCLOAK_CLIENT_SECRET) body.set('client_secret', process.env.KEYCLOAK_CLIENT_SECRET);
 
   const tokenRes = await fetch(authEndpoints().token, {
     method: 'POST',
@@ -39,9 +37,7 @@ export async function GET(req: NextRequest) {
 
   let email = 'keycloak-user';
   try {
-    const ui = await fetch(authEndpoints().userinfo, {
-      headers: { authorization: `Bearer ${tokens.access_token}` }
-    });
+    const ui = await fetch(authEndpoints().userinfo, { headers: { authorization: `Bearer ${tokens.access_token}` } });
     if (ui.ok) {
       const profile = await ui.json();
       email = profile.email || profile.preferred_username || email;
@@ -52,7 +48,6 @@ export async function GET(req: NextRequest) {
   const roles = Array.from(new Set([...extractKeycloakRoles(tokens.access_token), ...rolesFromGroups(groups)]));
   const tenants = tenantsFromGroups(groups);
   const permissions = permissionsFromGroups(groups, roles);
-
   const session = await createSessionToken({
     email,
     roles: roles.length ? roles : [ROLES.VIEWER],
@@ -60,27 +55,14 @@ export async function GET(req: NextRequest) {
     tenants: tenants.length ? tenants : permissions.map((p) => p.slug),
     permissions
   });
+
   const dest = nextPath && nextPath.startsWith('/') ? nextPath : '/fr/plateforme';
   const res = NextResponse.redirect(new URL(dest, req.url));
-  res.cookies.set({
-    name: sessionCookieName(),
-    value: session,
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: true,
-    path: '/',
-    maxAge: 60 * 60 * 12
-  });
+  const cookieBase = { httpOnly: true, sameSite: 'lax' as const, secure: true, path: '/' };
+  res.cookies.set({ name: sessionCookieName(), value: session, ...cookieBase, maxAge: 60 * 60 * 12 });
+  res.cookies.set({ name: 'kc_access', value: tokens.access_token, ...cookieBase, maxAge: tokens.expires_in || 300 });
   if (tokens.refresh_token) {
-    res.cookies.set({
-      name: 'kc_refresh',
-      value: tokens.refresh_token,
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: true,
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7
-    });
+    res.cookies.set({ name: 'kc_refresh', value: tokens.refresh_token, ...cookieBase, maxAge: 60 * 60 * 24 * 7 });
   }
   res.cookies.set({ name: 'kc_verifier', value: '', path: '/', maxAge: 0 });
   res.cookies.set({ name: 'kc_state', value: '', path: '/', maxAge: 0 });

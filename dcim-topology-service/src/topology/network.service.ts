@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Neo4jService } from '../neo4j/neo4j.service';
 import { DiscoverNetworkInput } from './dto/discover-network.input';
+import { ImportPatchesInput } from './dto/import-patches.input';
 import { BlastRadius, ImpactHop } from './models/impact.model';
 import { DiscoveryReport, NetworkLink, Port } from './models/port.model';
 
@@ -12,32 +13,47 @@ export class NetworkService {
   async discover(input: DiscoverNetworkInput): Promise<DiscoveryReport> {
     const rack = await this.neo4j.read(`MATCH (r:Rack {id: $id}) RETURN r`, { id: input.rackId });
     if (rack.records.length === 0) throw new NotFoundException(`Rack ${input.rackId} not found`);
-
     const devices = await this.neo4j.read(
       `MATCH (d:Device)-[:INSTALLED_IN]->(:Rack {id: $id}) RETURN d.id AS id, d.name AS name ORDER BY d.name`,
       { id: input.rackId },
     );
     const list = devices.records.map((r) => ({ id: r.get('id') as string, name: String(r.get('name')) }));
-    if (list.length === 0) {
+    if (!list.length) {
       return { rackId: input.rackId, source: input.source || 'lldp-sim', portsCreated: 0, linksCreated: 0, links: [] };
     }
-
     const tor = list.find((d) => /tor|sw|switch/i.test(d.name)) || list[list.length - 1];
     let portsCreated = 0;
     let linksCreated = 0;
     const links: NetworkLink[] = [];
-    await this.ensurePort(tor.id, 'Eth1/1', '25G');
     let i = 2;
     for (const dev of list.filter((d) => d.id !== tor.id)) {
       const nic = await this.ensurePort(dev.id, 'nic0', '25G');
       const swp = await this.ensurePort(tor.id, `Eth1/${i}`, '25G');
-      portsCreated += (nic.created ? 1 : 0) + (swp.created ? 1 : 0);
+      portsCreated += Number(nic.created) + Number(swp.created);
       const linked = await this.ensureLink(swp.port.id, nic.port.id, input.source || 'lldp-sim');
       if (linked.created) linksCreated += 1;
       links.push(linked.link);
       i += 1;
     }
     return { rackId: input.rackId, source: input.source || 'lldp-sim', portsCreated, linksCreated, links };
+  }
+
+  async importPatches(input: ImportPatchesInput): Promise<DiscoveryReport> {
+    let portsCreated = 0;
+    let linksCreated = 0;
+    const links: NetworkLink[] = [];
+    for (const row of input.rows) {
+      const aDev = await this.resolveDevice(input.rackId, row.aDevice);
+      const bDev = await this.resolveDevice(input.rackId, row.bDevice);
+      if (!aDev || !bDev) continue;
+      const a = await this.ensurePort(aDev, row.aPort, 'unknown');
+      const b = await this.ensurePort(bDev, row.bPort, 'unknown');
+      portsCreated += Number(a.created) + Number(b.created);
+      const linked = await this.ensureLink(a.port.id, b.port.id, 'csv-patch');
+      if (linked.created) linksCreated += 1;
+      links.push(linked.link);
+    }
+    return { rackId: input.rackId, source: 'csv-patch', portsCreated, linksCreated, links };
   }
 
   async linksForRack(rackId: string): Promise<NetworkLink[]> {
@@ -63,22 +79,28 @@ export class NetworkService {
        RETURN start, collect({id: n.id, labels: labels(n), name: coalesce(n.name, n.id), hop: hop}) AS hops`,
       { originId },
     );
-    if (result.records.length === 0) {
+    if (!result.records.length) {
       return { originId, hops: [{ id: originId, kind: 'unknown', label: originId, hop: 0 }] };
     }
     const hops: ImpactHop[] = [
       { id: originId, kind: 'origin', label: originId, hop: 0 },
-      ...result.records[0]
-        .get('hops')
-        .filter((h: any) => h && h.id)
-        .map((h: any) => ({
-          id: h.id,
-          kind: Array.isArray(h.labels) ? String(h.labels[0] || 'Node') : 'Node',
-          label: String(h.name || h.id),
-          hop: Number(h.hop) || 1,
-        })),
+      ...result.records[0].get('hops').filter((h: any) => h?.id).map((h: any) => ({
+        id: h.id,
+        kind: Array.isArray(h.labels) ? String(h.labels[0] || 'Node') : 'Node',
+        label: String(h.name || h.id),
+        hop: Number(h.hop) || 1,
+      })),
     ];
     return { originId, hops };
+  }
+
+  private async resolveDevice(rackId: string, key: string): Promise<string | null> {
+    const r = await this.neo4j.read(
+      `MATCH (d:Device)-[:INSTALLED_IN]->(:Rack {id: $rackId})
+       WHERE d.id = $key OR d.name = $key RETURN d.id AS id LIMIT 1`,
+      { rackId, key },
+    );
+    return r.records[0]?.get('id') || null;
   }
 
   private mapPort(p: Record<string, any>): Port {

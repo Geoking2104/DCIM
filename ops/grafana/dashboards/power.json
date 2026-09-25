@@ -1,0 +1,36 @@
+{
+  "uid": "qinode-power",
+  "title": "Qinode · Puissance & PUE",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "kW grid / UPS / PDU / rack",
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse" },
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp, grid_power_kw, ups_power_kw, pdu_power_kw, rack_power_kw FROM dcim.power_metrics WHERE timestamp >= now() - INTERVAL 1 HOUR ORDER BY timestamp",
+          "format": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "PUE instantané grid/rack",
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse" },
+      "targets": [
+        {
+          "rawSql": "SELECT grid_power_kw / nullIf(rack_power_kw, 0) AS pue FROM dcim.power_metrics ORDER BY timestamp DESC LIMIT 1",
+          "format": 2
+        }
+      ]
+    }
+  ]
+}

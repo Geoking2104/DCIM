@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: qinode
+    orgId: 1
+    folder: Qinode
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

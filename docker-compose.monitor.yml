@@ -17,10 +17,30 @@ services:
   prometheus:
     image: prom/prometheus:v2.54.1
     container_name: dcim-prometheus
-    depends_on:
-      - timeseries-db
     volumes:
       - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9090:9090"
     profiles: ["monitor", "alert"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: dcim-grafana
+    depends_on:
+      - timeseries-db
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-qinode}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    profiles: ["monitor", "viz"]
+
+volumes:
+  grafana_data:

@@ -5,11 +5,11 @@ import MetricsLinks from '@/components/metrics/MetricsLinks';
 export const dynamic = 'force-dynamic';
 
 const ROWS = [
-  ['Collecte', 'Telegraf', 'SNMP PDU + Redfish BMC, profil monitor'],
-  ['Historique', 'ClickHouse', 'dcim.power_metrics · GET /api/metrics/live'],
-  ['Alerte', 'Prometheus', 'scrape :9363 · localhost:9090'],
-  ['Graphe', 'Neo4j', 'inventaire, pas la télémétrie'],
-  ['Face ops', 'Grafana', 'optionnel, pas démarré']
+  ['Collecte', 'Telegraf', 'SNMP + Redfish'],
+  ['Historique', 'ClickHouse', 'dcim.power_metrics'],
+  ['Alerte', 'Prometheus', 'http://localhost:9090'],
+  ['Visualisation', 'Grafana', 'http://localhost:3001'],
+  ['Graphe', 'Neo4j', 'inventaire']
 ];
 
 export default function SupervisionPage({ params: { locale } }: { params: { locale: string } }) {
@@ -30,7 +30,7 @@ export default function SupervisionPage({ params: { locale } }: { params: { loca
             ))}
           </tbody>
         </table>
-        <p className="text-[12px] text-[#706E6B]">Fichiers : ops/MONITORING.md · docker-compose.monitor.yml</p>
+        <p className="text-[13px]">Grafana : dossier Qinode · dashboard Puissance &amp; PUE. Compte admin, mot de passe via GRAFANA_PASSWORD.</p>
       </div>
     </Providers>
   );

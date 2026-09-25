@@ -1,16 +1,16 @@
 # Supervision Qinode
 
-| Palier | Outil | Commande |
-| --- | --- | --- |
-| 1 Collecte | Telegraf SNMP/Redfish → ClickHouse | `--profile monitor` |
-| 2 Alerte | Prometheus scrape ClickHouse :9363 + Telegraf | `--profile monitor` (service prometheus) |
-| 3 GPU | DCGM exporter | plus tard |
-
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.monitor.yml --profile monitor up -d
 ```
 
-UI Prometheus : http://localhost:9090  
-PUE produit : `/fr/metriques` et `GET /api/metrics/live`
+| Service | URL |
+| --- | --- |
+| Grafana | http://localhost:3001 (admin / `GRAFANA_PASSWORD` défaut `qinode`) |
+| Prometheus | http://localhost:9090 |
+| PUE produit | `/fr/metriques` · `GET /api/metrics/live` |
 
-Grafana n’est pas lancé : ClickHouse reste l’historique, le site Next.js reste la face Qinode.
+Datasources provisionnés : ClickHouse (`timeseries-db:8123`, base `dcim`) et Prometheus.
+Dashboard : **Qinode · Puissance & PUE** (folder Qinode).
+
+Grafana est local. Pas de Grafana Cloud.

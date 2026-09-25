@@ -5,6 +5,7 @@ use axum::{
     Json, Router,
 };
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
+use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
 use serde::Serialize;
 use std::net::SocketAddr;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -18,6 +19,7 @@ struct AppState {
 struct Health {
     service: &'static str,
     rust: bool,
+    redfish: bool,
     nest_graphql: String,
 }
 
@@ -36,6 +38,7 @@ async fn main() {
         .route("/health", get(health))
         .route("/v1/metrics/pue", post(calc_pue))
         .route("/v1/metrics/wue", post(calc_wue))
+        .route("/v1/redfish/snapshot", post(redfish_snapshot))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state);
@@ -53,6 +56,7 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
     Json(Health {
         service: "qinode-gateway",
         rust: true,
+        redfish: true,
         nest_graphql: state.nest_graphql,
     })
 }
@@ -67,4 +71,13 @@ async fn calc_wue(Json(input): Json<WueInput>) -> Result<Json<MetricPreview>, (S
     wue(input)
         .map(Json)
         .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
+}
+
+async fn redfish_snapshot(
+    Json(target): Json<BmcTarget>,
+) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
+    snapshot(target)
+        .await
+        .map(Json)
+        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
 }

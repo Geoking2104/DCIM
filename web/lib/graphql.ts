@@ -1,41 +1,64 @@
-import { ApolloClient, InMemoryCache, HttpLink, split } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, split, ApolloLink } from '@apollo/client';
+import { onError } from '@apollo/client/link/error';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { getMainDefinition } from '@apollo/client/utilities';
 
 const httpUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL || 'http://localhost:4000/graphql';
-const wsUrl = httpUrl.replace('http','ws');
+const wsUrl = httpUrl.replace('http', 'ws');
 
 function makeClient() {
-  const httpLink = new HttpLink({ uri: httpUrl });
+  const httpLink = new HttpLink({ uri: httpUrl, fetch });
+  const errorLink = onError(() => undefined);
+  const base = ApolloLink.from([errorLink, httpLink]);
+
   if (typeof window === 'undefined') {
-    return new ApolloClient({ link: httpLink, cache: new InMemoryCache() });
+    return new ApolloClient({
+      ssrMode: true,
+      link: base,
+      cache: new InMemoryCache(),
+      defaultOptions: {
+        watchQuery: { errorPolicy: 'ignore', fetchPolicy: 'no-cache' },
+        query: { errorPolicy: 'ignore', fetchPolicy: 'no-cache' }
+      }
+    });
   }
-  const wsLink = new GraphQLWsLink(createClient({ url: wsUrl, retryAttempts: 5 }));
-  const splitLink = split(
-    ({ query }) => {
-      const def = getMainDefinition(query);
-      return def.kind === 'OperationDefinition' && def.operation === 'subscription';
-    },
-    wsLink,
-    httpLink
-  );
-  return new ApolloClient({ link: splitLink, cache: new InMemoryCache() });
+
+  let wsLink: GraphQLWsLink | null = null;
+  try {
+    wsLink = new GraphQLWsLink(createClient({
+      url: wsUrl,
+      retryAttempts: 0,
+      lazy: true,
+      shouldRetry: () => false
+    }));
+  } catch {
+    wsLink = null;
+  }
+
+  const link = wsLink
+    ? split(
+        ({ query }) => {
+          const def = getMainDefinition(query);
+          return def.kind === 'OperationDefinition' && def.operation === 'subscription';
+        },
+        wsLink,
+        base
+      )
+    : base;
+
+  return new ApolloClient({
+    link,
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      watchQuery: { errorPolicy: 'all', fetchPolicy: 'no-cache' },
+      query: { errorPolicy: 'all', fetchPolicy: 'no-cache' }
+    }
+  });
 }
+
 let client: ApolloClient<any> | null = null;
 export function getClient() {
   if (!client) client = makeClient();
   return client;
 }
-
-export const RACKS_QUERY = `
-  query Racks {
-    racks { id name powerLoad capacity pue temperature status devices { id name power battery { cellTemp } } }
-  }
-`;
-
-export const RACKS_SUBSCRIPTION = `
-  subscription OnRackUpdate {
-    rackUpdated { id powerLoad temperature pue status }
-  }
-`;

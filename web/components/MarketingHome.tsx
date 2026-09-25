@@ -1,6 +1,6 @@
 export default function MarketingHome({ locale }: { locale: string }) {
   const plateforme = `/${locale}/plateforme`;
-  const eed = `/${locale}/modules/conformite-eed`;
+  const eed = `/${locale}/eed`;
   const power = `/${locale}/power`;
   const demo = 'mailto:contact@qinode.eu?subject=Demande%20de%20d%C3%A9mo%20Qinode';
 
@@ -11,12 +11,22 @@ export default function MarketingHome({ locale }: { locale: string }) {
     <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
   );
 
+  const classes = [
+    { l: 'A', t: '≤ 1.15', c: 'bg-emerald-500' },
+    { l: 'B', t: '1.25', c: 'bg-lime-500' },
+    { l: 'C', t: '1.35', c: 'bg-yellow-400' },
+    { l: 'D', t: '1.50', c: 'bg-amber-400' },
+    { l: 'E', t: '1.75', c: 'bg-orange-500' },
+    { l: 'F', t: '2.00', c: 'bg-red-500' },
+    { l: 'G', t: '> 2.0', c: 'bg-red-800' }
+  ];
+
   return (
     <div className="min-h-screen bg-white text-[#032D60] antialiased">
       <div className="bg-[#032D60] text-white">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-8 h-8 flex items-center justify-between text-[11px]">
           <span className="opacity-90">Souverain • On-premise • Sans cloud obligatoire</span>
-          <a href={plateforme} className="underline opacity-90">Ouvrir la plateforme →</a>
+          <a href={eed} className="underline opacity-90">Module EED →</a>
         </div>
       </div>
 
@@ -30,10 +40,9 @@ export default function MarketingHome({ locale }: { locale: string }) {
             </div>
           </a>
           <div className="flex items-center gap-2">
-            <a href="#produit" className="hidden md:inline-flex text-[13px] font-medium text-slate-600 px-3 py-2">Produit</a>
-            <a href={plateforme} className="inline-flex text-[13px] font-semibold text-[#032D60] px-3 py-2 underline underline-offset-4">Plateforme</a>
-            <a href={eed} className="hidden md:inline-flex text-[13px] font-medium text-slate-600 px-3 py-2">EED</a>
-            <a href={demo} className="inline-flex items-center gap-2 bg-[#0176D3] hover:bg-[#032D60] text-white text-[13px] font-semibold px-5 py-2.5 rounded-full">Demander une démo</a>
+            <a href={plateforme} className="hidden md:inline-flex text-[13px] font-semibold text-[#032D60] px-3 py-2">Plateforme</a>
+            <a href={eed} className="inline-flex text-[13px] font-semibold text-[#0176D3] px-3 py-2 underline underline-offset-4">EED</a>
+            <a href={demo} className="inline-flex items-center gap-2 bg-[#0176D3] text-white text-[13px] font-semibold px-5 py-2.5 rounded-full">Demander une démo</a>
           </div>
         </div>
       </header>
@@ -48,84 +57,82 @@ export default function MarketingHome({ locale }: { locale: string }) {
               Votre datacenter<br />sous contrôle.<br /><span className="text-[#0176D3]">Enfin.</span>
             </h1>
             <p className="mt-6 text-[18px] md:text-[20px] leading-[1.4] text-slate-600 max-w-[48ch] font-medium">
-              Qinode est la plateforme qui vous dit exactement ce que vous avez, ce que vous consommez, et ce qu&apos;il vous reste.
+              Qinode dit ce que vous avez, ce que vous consommez, et ce qu&apos;il reste — y compris le dossier énergie européen.
             </p>
-            <div className="mt-8 space-y-3.5">
-              {['Réduisez vos risques de panne', 'Gagnez du temps d’exploitation', 'Préparez le reporting UE sans chaos'].map((e) => (
-                <div key={e} className="flex items-center gap-3 text-[15px] font-medium">
-                  <div className="w-7 h-7 rounded-full bg-[#0176D3]/10 text-[#0176D3] grid place-items-center"><Check /></div>
-                  {e}
-                </div>
-              ))}
-            </div>
             <div className="mt-9 flex flex-wrap gap-3">
               <a href={plateforme} className="inline-flex items-center gap-2 bg-[#032D60] text-white px-7 py-3.5 rounded-full text-[15px] font-semibold">Voir la plateforme <Arrow /></a>
-              <a href={demo} className="inline-flex items-center gap-2 bg-white border border-slate-200 px-7 py-3.5 rounded-full text-[15px] font-semibold">Demander une démo live</a>
+              <a href={eed} className="inline-flex items-center gap-2 bg-white border border-slate-200 px-7 py-3.5 rounded-full text-[15px] font-semibold">Ouvrir le module EED</a>
             </div>
           </div>
-
-          <a href={plateforme} className="relative block">
-            <div className="bg-white border border-slate-200 rounded-[1.5rem] shadow-[0_20px_60px_rgba(3,45,96,0.12)] overflow-hidden">
-              <div className="h-10 bg-[#F8FAFC] border-b border-slate-100 flex items-center gap-1.5 px-4">
-                <div className="w-3 h-3 rounded-full bg-red-400" /><div className="w-3 h-3 rounded-full bg-amber-400" /><div className="w-3 h-3 rounded-full bg-emerald-400" />
-                <span className="ml-3 text-[11px] text-slate-400">qinode.eu / plateforme</span>
-              </div>
-              <div className="p-5 grid grid-cols-3 gap-3">
-                {[{k:'Capacité libre',v:'42%',c:'text-emerald-600 bg-emerald-50'},{k:'PUE preview',v:'1.07',c:'text-[#0176D3] bg-[#0176D3]/10'},{k:'Risque panne',v:'Faible',c:'text-slate-700 bg-slate-100'}].map((e)=>(
-                  <div key={e.k} className={`rounded-xl p-3 border border-slate-100 ${e.c}`}>
-                    <div className="text-[10px] uppercase tracking-widest font-semibold opacity-70">{e.k}</div>
-                    <div className="text-[22px] font-extrabold mt-1">{e.v}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="px-5 pb-5 text-[12px] font-semibold text-[#0176D3]">Ouvrir la plateforme →</div>
+          <a href={eed} className="block bg-white border rounded-[1.5rem] shadow-[0_20px_60px_rgba(3,45,96,0.12)] overflow-hidden">
+            <div className="h-10 bg-[#F8FAFC] border-b flex items-center px-4 text-[11px] text-slate-400">qinode.eu / eed — preview A–G</div>
+            <div className="p-5 grid grid-cols-3 gap-3">
+              <div className="rounded-xl p-3 bg-emerald-50 text-emerald-700"><div className="text-[10px] uppercase">PUE</div><div className="text-[22px] font-extrabold">1.07</div></div>
+              <div className="rounded-xl p-3 bg-[#0176D3]/10 text-[#0176D3]"><div className="text-[10px] uppercase">Classe</div><div className="text-[22px] font-extrabold">A</div></div>
+              <div className="rounded-xl p-3 bg-slate-100"><div className="text-[10px] uppercase">ERF</div><div className="text-[22px] font-extrabold">12%</div></div>
             </div>
+            <div className="px-5 pb-5 text-[12px] font-semibold text-[#0176D3]">Ouvrir /fr/eed →</div>
           </a>
         </div>
       </section>
 
-      <section className="bg-[#F8FAFC] border-y border-slate-100">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-16">
-          <h2 className="text-[30px] md:text-[40px] font-extrabold">Le problème que tout le monde connaît.</h2>
-          <div className="mt-10 grid md:grid-cols-3 gap-6">
-            {[
-              ['On ne sait plus ce qui est branché où', 'Des feuilles Excel, des plans obsolètes.'],
-              ['On découvre la panne trop tard', 'Pas de vue d’ensemble de la chaîne électrique.'],
-              ['Le reporting UE prend 3 semaines', 'Plus de temps à prouver qu’à piloter.']
-            ].map(([t,d]) => (
-              <a key={t} href={plateforme} className="bg-white border border-slate-200 rounded-[1.25rem] p-6 block hover:border-[#0176D3]">
-                <h3 className="text-[17px] font-bold">{t}</h3>
-                <p className="mt-2.5 text-[14px] text-slate-600">{d}</p>
-                <div className="mt-5 text-[12px] font-semibold text-[#0176D3]">Voir la plateforme →</div>
-              </a>
-            ))}
+      <section id="eed" className="bg-[#032D60] text-white">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-16 md:py-20 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.18em] text-blue-200 font-semibold">Règlement délégué (UE) 2024/1364</div>
+            <h2 className="mt-3 text-[32px] md:text-[44px] font-extrabold leading-[0.95]">Conformité EED,<br />sans tableur de 3 semaines.</h2>
+            <p className="mt-5 text-[16px] leading-7 text-blue-100 max-w-[52ch]">
+              Le module calcule PUE, WUE, CUE et ERF à partir de la métrologie du site, propose une lecture interne A–G,
+              et prépare un export JSON. Ce n&apos;est pas le label officiel européen — c&apos;est le dossier prêt pour la revue humaine.
+            </p>
+            <ul className="mt-6 space-y-2 text-[14px] text-blue-50">
+              <li className="flex gap-2"><Check /> Métriques Annexe III en continu</li>
+              <li className="flex gap-2"><Check /> Échelle A–G en preview (official=false)</li>
+              <li className="flex gap-2"><Check /> Trajectoire chaleur fatale (EnEfG si applicable)</li>
+              <li className="flex gap-2"><Check /> Payload registre UE, dry-run</li>
+            </ul>
+            <a href={eed} className="mt-8 inline-flex items-center gap-2 bg-white text-[#032D60] px-7 py-3.5 rounded-full text-[15px] font-semibold">
+              Ouvrir https://dcim-web.vercel.app/{locale}/eed <Arrow />
+            </a>
+          </div>
+
+          <div className="bg-white text-[#032D60] rounded-[1.5rem] p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-slate-400">Label énergie — preview</div>
+                <div className="text-[18px] font-bold mt-1">Paris East • site-paris-01</div>
+              </div>
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500 text-white grid place-items-center text-[28px] font-black">A</div>
+            </div>
+            <div className="mt-6 space-y-1.5">
+              {classes.map((row) => (
+                <div key={row.l} className="flex items-center gap-3 text-[12px] font-mono">
+                  <span className={`w-8 text-center text-white text-[11px] font-bold py-0.5 ${row.c}`}>{row.l}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded">
+                    <div className={`h-2 ${row.c} rounded`} style={{ width: row.l === 'A' ? '88%' : '40%' }} />
+                  </div>
+                  <span className="w-14 text-right text-slate-500">PUE {row.t}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 grid grid-cols-3 gap-3 text-center">
+              <div className="border rounded-xl p-3"><div className="text-[10px] text-slate-400">WUE</div><div className="font-extrabold">0.21</div></div>
+              <div className="border rounded-xl p-3"><div className="text-[10px] text-slate-400">CUE</div><div className="font-extrabold">0.18</div></div>
+              <div className="border rounded-xl p-3"><div className="text-[10px] text-slate-400">ERF</div><div className="font-extrabold">12%</div></div>
+            </div>
+            <a href={eed} className="mt-5 block text-center text-[13px] font-semibold text-[#0176D3]">Voir le tableau de bord EED →</a>
           </div>
         </div>
       </section>
 
-      <section id="produit" className="max-w-[1200px] mx-auto px-6 lg:px-8 py-16">
-        <h2 className="text-[30px] md:text-[42px] font-extrabold">Ce que vous voyez avec Qinode.</h2>
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
-          {[
-            ['Inventaire à jour', 'Serveurs, baies, câbles, ports.'],
-            ['Chaîne électrique', 'Du compteur à la batterie.'],
-            ['Refroidissement', 'Débit, pression, fuites, températures.'],
-            ['Capacités réelles', 'Place, puissance, froid.'],
-            ['Jumeau 3D', 'Dans le navigateur, sans install.'],
-            ['Preuves d’audit', 'PUE / WUE en preview.']
-          ].map(([t,d]) => (
-            <a key={t} href={plateforme} className="bg-white border border-slate-200 rounded-[1.25rem] p-6 block hover:border-[#0176D3]">
-              <h3 className="text-[16px] font-bold">{t}</h3>
-              <p className="mt-2 text-[14px] text-slate-600">{d}</p>
-            </a>
-          ))}
-        </div>
-        <div className="mt-12 bg-gradient-to-br from-[#032D60] to-[#0A4A9A] rounded-[1.45rem] p-6 md:p-8 flex items-center justify-between gap-6 text-white">
-          <div>
-            <div className="font-semibold">Interface réelle</div>
-            <div className="text-[13px] opacity-70">KPI, racks, jumeau, conformité.</div>
+      <section className="bg-[#F8FAFC] border-y">
+        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-16">
+          <h2 className="text-[30px] md:text-[40px] font-extrabold">Le problème que tout le monde connaît.</h2>
+          <div className="mt-10 grid md:grid-cols-3 gap-6">
+            <a href={plateforme} className="bg-white border rounded-[1.25rem] p-6 block"><h3 className="font-bold">On ne sait plus ce qui est branché où</h3><p className="mt-2 text-[14px] text-slate-600">Excel et plans obsolètes.</p></a>
+            <a href={power} className="bg-white border rounded-[1.25rem] p-6 block"><h3 className="font-bold">On découvre la panne trop tard</h3><p className="mt-2 text-[14px] text-slate-600">Pas de vue de la chaîne électrique.</p></a>
+            <a href={eed} className="bg-white border border-[#0176D3] rounded-[1.25rem] p-6 block"><h3 className="font-bold">Le reporting UE prend 3 semaines</h3><p className="mt-2 text-[14px] text-slate-600">PUE, WUE, chaleur fatale — le module EED les assemble.</p><div className="mt-4 text-[12px] font-semibold text-[#0176D3]">Ouvrir /fr/eed →</div></a>
           </div>
-          <a href={plateforme} className="bg-white text-[#032D60] px-5 py-2.5 rounded-full text-[13px] font-semibold">Ouvrir la plateforme</a>
         </div>
       </section>
 
@@ -133,19 +140,19 @@ export default function MarketingHome({ locale }: { locale: string }) {
         <div className="rounded-[1.75rem] bg-[#F3F8FF] border border-[#DDEBFF] p-8 md:p-12">
           <h2 className="text-[32px] md:text-[44px] font-extrabold">On vous montre ?</h2>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href={plateforme} className="inline-flex items-center gap-2 bg-[#032D60] text-white px-7 py-3.5 rounded-full text-[15px] font-semibold">Voir la plateforme <Arrow /></a>
-            <a href={demo} className="inline-flex items-center gap-2 bg-white border px-7 py-3.5 rounded-full text-[15px] font-semibold">Demander une démo live</a>
-            <a href={power} className="inline-flex items-center px-7 py-3.5 text-[15px] underline">Supervision énergie</a>
+            <a href={eed} className="inline-flex items-center gap-2 bg-[#032D60] text-white px-7 py-3.5 rounded-full text-[15px] font-semibold">Module EED <Arrow /></a>
+            <a href={plateforme} className="inline-flex items-center gap-2 bg-white border px-7 py-3.5 rounded-full text-[15px] font-semibold">Plateforme</a>
+            <a href={power} className="inline-flex items-center px-7 py-3.5 text-[15px] underline">Énergie</a>
           </div>
         </div>
       </section>
 
-      <footer className="border-t bg-white">
-        <div className="max-w-[1200px] mx-auto px-6 lg:px-8 py-10 flex flex-wrap justify-between gap-4 text-[13px]">
+      <footer className="border-t">
+        <div className="max-w-[1200px] mx-auto px-6 py-10 flex flex-wrap justify-between gap-4 text-[13px]">
           <span className="font-bold">QINODE.EU</span>
           <div className="flex gap-4">
-            <a className="underline font-semibold" href={plateforme}>Plateforme</a>
-            <a className="underline" href={eed}>EED</a>
+            <a className="underline" href={plateforme}>Plateforme</a>
+            <a className="underline font-semibold" href={eed}>EED /fr/eed</a>
             <a className="underline" href={power}>Énergie</a>
           </div>
         </div>

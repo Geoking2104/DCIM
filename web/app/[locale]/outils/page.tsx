@@ -9,6 +9,11 @@ export default function OutilsPage({ params: { locale } }: { params: { locale: s
         </div>
       </header>
       <main className="max-w-[960px] mx-auto px-6 py-12 grid md:grid-cols-2 gap-6">
+        <a href={`/${locale}/metriques`} className="md:col-span-2 block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
+          <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">ISO 30134</div>
+          <h2 className="mt-2 text-[22px] font-extrabold">PUE · WUE · CUE · ERF ensemble</h2>
+          <p className="mt-2 text-[14px] text-slate-600">Un formulaire, quatre ratios. Moteur Rust si le sidecar est là.</p>
+        </a>
         <a href={`/${locale}/outils/pue`} className="block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
           <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">PUE</div>
           <h2 className="mt-2 text-[22px] font-extrabold">Efficacité électrique</h2>

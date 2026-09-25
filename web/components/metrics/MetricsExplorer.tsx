@@ -47,7 +47,7 @@ export default function MetricsExplorer({ locale }: { locale: string }) {
         <h1 className="text-[28px] font-extrabold">Métriques salle / machines</h1>
       </div>
       <MetricsLinks locale={locale} current="/metriques" />
-      <LivePue rackId="RACK-05" />
+      <LivePue />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {CARDS.map((c) => (
           <a key={c.id} href={`/${locale}${c.href}`} className="slds-card p-4 bg-white block hover:border-[#0176D3]">

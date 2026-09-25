@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
+import LivePue from '@/components/metrics/LivePue';
 
 const CARDS = [
   { id: 'pue', title: 'PUE', formula: 'salle kWh / IT kWh', hint: '1.0 = parfait · <1.2 excellent', href: '/outils/pue' },
@@ -44,11 +45,9 @@ export default function MetricsExplorer({ locale }: { locale: string }) {
       <div>
         <p className="text-[11px] uppercase font-bold text-[#706E6B]">Performance</p>
         <h1 className="text-[28px] font-extrabold">Métriques salle / machines</h1>
-        <p className="text-[13px] text-[#444] max-w-[62ch] mt-1">
-          Quatre indicateurs ISO/IEC 30134 + EED. Chaque carte ouvre la page dédiée.
-        </p>
       </div>
       <MetricsLinks locale={locale} current="/metriques" />
+      <LivePue rackId="RACK-05" />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {CARDS.map((c) => (
           <a key={c.id} href={`/${locale}${c.href}`} className="slds-card p-4 bg-white block hover:border-[#0176D3]">

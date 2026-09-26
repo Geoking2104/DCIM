@@ -23,12 +23,11 @@ export default function Header(){
           <nav className="hidden lg:flex gap-1 text-[13px] font-medium">
             <a href={`/${locale}/plateforme`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('platform')}</a>
             <a href={`/${locale}/topologie`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Racks</a>
-            <a href={`/${locale}/graphe-reseau`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Réseau</a>
             <a href={`/${locale}/metriques`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Métriques</a>
             <a href={`/${locale}/metriques/tendances`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Tendances</a>
-            <a href={`/${locale}/outils`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Outils</a>
             <a href={`/${locale}/power`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('power')}</a>
             <a href={`/${locale}/supervision`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Supervision</a>
+            <a href={`/${locale}/supervision/bms`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">BMS</a>
           </nav>
         </div>
         <div className="flex gap-3 items-center">

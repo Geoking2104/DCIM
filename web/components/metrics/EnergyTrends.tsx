@@ -15,10 +15,18 @@ type Point = {
   pue: number;
 };
 
+const RANGES = [
+  { hours: 1, label: '1 h' },
+  { hours: 24, label: '24 h' },
+  { hours: 168, label: '7 j' },
+  { hours: 720, label: '30 j' }
+];
+
 export default function EnergyTrends({ rackId }: { rackId?: string }) {
   const [rows, setRows] = useState<Point[]>([]);
   const [live, setLive] = useState(false);
   const [rack, setRack] = useState(rackId || '');
+  const [hours, setHours] = useState(24);
 
   useEffect(() => {
     setRack(rackId || readLastRack() || '');
@@ -28,8 +36,9 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
     let stop = false;
     async function load() {
       try {
-        const q = rack ? `?rack=${encodeURIComponent(rack)}` : '';
-        const res = await fetch(`/api/clickhouse/power${q}`);
+        const params = new URLSearchParams({ hours: String(hours) });
+        if (rack) params.set('rack', rack);
+        const res = await fetch(`/api/clickhouse/power?${params}`);
         const json = await res.json();
         if (stop) return;
         const mapped: Point[] = (Array.isArray(json) ? json : []).map((p: any) => {
@@ -51,9 +60,9 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
       }
     }
     load();
-    const id = setInterval(load, 10000);
+    const id = setInterval(load, hours <= 1 ? 10000 : 60000);
     return () => { stop = true; clearInterval(id); };
-  }, [rack]);
+  }, [rack, hours]);
 
   const stats = useMemo(() => {
     if (!rows.length) return null;
@@ -69,19 +78,30 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
     };
   }, [rows]);
 
+  const tickFmt = hours <= 24 ? 'HH:mm' : hours <= 168 ? 'dd/MM HH' : 'dd/MM';
+
   return (
     <div className="slds-card p-5 bg-white space-y-4">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <div className="text-[11px] uppercase font-bold text-[#706E6B]">Tendances énergétiques · 60 min</div>
+          <div className="text-[11px] uppercase font-bold text-[#706E6B]">Tendances énergétiques · historique</div>
           <div className="text-[16px] font-extrabold">Réseau, racks et PUE instantané</div>
           <div className="text-[11px] text-[#706E6B] font-mono mt-1">
-            {rack || 'tous racks'} · GET /api/clickhouse/power · pas un PUE ISO
+            {rack || 'tous racks'} · GET /api/clickhouse/power?hours={hours}
           </div>
         </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className={`w-2 h-2 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
-          {live ? 'série 10 s' : 'hors ligne / démo'}
+        <div className="flex flex-wrap gap-2 items-center">
+          {RANGES.map((r) => (
+            <button
+              key={r.hours}
+              type="button"
+              onClick={() => setHours(r.hours)}
+              className={`px-3 py-1.5 rounded border text-[12px] ${hours === r.hours ? 'bg-[#032D60] text-white border-[#032D60]' : 'bg-white'}`}
+            >
+              {r.label}
+            </button>
+          ))}
+          <span className={`w-2 h-2 rounded-full ${live ? 'bg-green-500' : 'bg-gray-300'}`} />
         </div>
       </div>
 
@@ -99,13 +119,10 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
-            <XAxis dataKey="timestamp" tickFormatter={(v) => format(new Date(v), 'HH:mm')} tick={{ fontSize: 10 }} />
+            <XAxis dataKey="timestamp" tickFormatter={(v) => format(new Date(v), tickFmt)} tick={{ fontSize: 10 }} />
             <YAxis yAxisId="kw" tick={{ fontSize: 10 }} unit=" kW" />
             <YAxis yAxisId="pue" orientation="right" tick={{ fontSize: 10 }} domain={['auto', 'auto']} />
-            <Tooltip
-              contentStyle={{ fontSize: 11 }}
-              labelFormatter={(v) => format(new Date(v as string), 'HH:mm')}
-            />
+            <Tooltip contentStyle={{ fontSize: 11 }} labelFormatter={(v) => format(new Date(v as string), tickFmt)} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Line yAxisId="kw" type="monotone" dataKey="grid_kw" name="Réseau kW" stroke="#032D60" strokeWidth={2} dot={false} />
             <Line yAxisId="kw" type="monotone" dataKey="rack_kw" name="Rack kW" stroke="#0176D3" strokeWidth={2} dot={false} />

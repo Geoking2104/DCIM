@@ -13,8 +13,9 @@ export default function TendancesPage({ params: { locale } }: { params: { locale
         <div>
           <p className="text-[11px] uppercase font-bold text-[#706E6B]">Performance</p>
           <h1 className="text-[28px] font-extrabold">Tendances énergétiques</h1>
-          <p className="mt-2 text-[14px] text-slate-600 max-w-[60ch]">
-            Dernière heure de puissance réseau et rack, avec un PUE instantané dérivé. Ce n’est pas le PUE de période ISO 30134.
+          <p className="mt-2 text-[14px] text-slate-600 max-w-[64ch]">
+            Historique ClickHouse : 1 heure (minute), 24 heures (5 min), 7 jours (heure), 30 jours (6 h).
+            PUE dérivé point par point — pas un PUE de période ISO.
           </p>
         </div>
         <MetricsLinks locale={locale} current="/metriques/tendances" />

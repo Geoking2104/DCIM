@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 import LivePue from '@/components/metrics/LivePue';
+import RatiosChart from '@/components/metrics/RatiosChart';
 
 const CARDS = [
   { id: 'pue', title: 'PUE', formula: 'salle kWh / IT kWh', hint: '1.0 = parfait · <1.2 excellent', href: '/outils/pue' },
@@ -55,10 +56,10 @@ export default function MetricsExplorer({ locale }: { locale: string }) {
             <div className="text-[28px] font-black">{out[c.id] ? out[c.id].value.toFixed(3) : '—'}</div>
             <div className="text-[12px] text-[#706E6B]">{c.formula}</div>
             <div className="text-[12px] mt-1">{out[c.id]?.band || c.hint}</div>
-            <div className="text-[11px] mt-2 text-[#0176D3]">{c.href}</div>
           </a>
         ))}
       </div>
+      <RatiosChart out={out} />
       <div className="slds-card p-5 bg-white grid sm:grid-cols-2 gap-3">
         <Field label="IT (kWh)" value={it} onChange={setIt} />
         <Field label="Salle (kWh)" value={facility} onChange={setFacility} />

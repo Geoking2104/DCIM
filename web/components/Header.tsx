@@ -26,6 +26,7 @@ export default function Header(){
             <a href={`/${locale}/graphe-reseau`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Réseau</a>
             <a href={`/${locale}/metriques`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Métriques</a>
             <a href={`/${locale}/power`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('power')}</a>
+            <a href={`/${locale}/supervision`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Supervision</a>
           </nav>
         </div>
         <div className="flex gap-3 items-center">

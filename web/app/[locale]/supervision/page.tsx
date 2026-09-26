@@ -18,7 +18,11 @@ export default function SupervisionPage({ params: { locale } }: { params: { loca
       <Header />
       <div className="max-w-[800px] mx-auto px-6 py-8 space-y-6">
         <h1 className="text-[28px] font-extrabold">Supervision</h1>
-        <MetricsLinks locale={locale} />
+        <MetricsLinks locale={locale} current="/supervision" />
+        <p className="text-[13px] text-[#444]">
+          Grafana local : <a className="underline" href="http://localhost:3001">:3001</a>
+          {' · '}Prometheus : <a className="underline" href="http://localhost:9090">:9090</a>
+        </p>
         <table className="w-full text-[13px] bg-white border">
           <tbody>
             {ROWS.map(([a, b, c]) => (

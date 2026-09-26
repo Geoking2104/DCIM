@@ -1,5 +1,6 @@
 export const METRIC_LINKS = (locale: string) => [
   { href: `/${locale}/metriques`, label: 'Vue d’ensemble', path: '/metriques' },
+  { href: `/${locale}/metriques/tendances`, label: 'Tendances', path: '/metriques/tendances' },
   { href: `/${locale}/outils/pue`, label: 'PUE', path: '/outils/pue' },
   { href: `/${locale}/outils/wue`, label: 'WUE', path: '/outils/wue' },
   { href: `/${locale}/outils/cue`, label: 'CUE', path: '/outils/cue' },

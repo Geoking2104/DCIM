@@ -3,6 +3,7 @@ import { useState } from 'react';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 import LivePue from '@/components/metrics/LivePue';
 import RatiosChart from '@/components/metrics/RatiosChart';
+import EnergyTrends from '@/components/metrics/EnergyTrends';
 
 const CARDS = [
   { id: 'pue', title: 'PUE', formula: 'salle kWh / IT kWh', hint: '1.0 = parfait · <1.2 excellent', href: '/outils/pue' },
@@ -49,6 +50,7 @@ export default function MetricsExplorer({ locale }: { locale: string }) {
       </div>
       <MetricsLinks locale={locale} current="/metriques" />
       <LivePue />
+      <EnergyTrends />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {CARDS.map((c) => (
           <a key={c.id} href={`/${locale}${c.href}`} className="slds-card p-4 bg-white block hover:border-[#0176D3]">

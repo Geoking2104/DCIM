@@ -1,6 +1,7 @@
 import Header from '@/components/Header';
 import Providers from '@/components/Providers';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
+import EnergyTrends from '@/components/metrics/EnergyTrends';
 
 export default function OutilsPage({ params: { locale } }: { params: { locale: string } }) {
   return (
@@ -10,10 +11,15 @@ export default function OutilsPage({ params: { locale } }: { params: { locale: s
         <main className="max-w-[960px] mx-auto px-6 py-8 space-y-8">
           <div>
             <h1 className="text-[32px] font-extrabold">Outils</h1>
-            <p className="mt-2 text-[14px] text-slate-600 max-w-[52ch]">Calculs rapides et découverte réseau réconciliée avec le graphe.</p>
+            <p className="mt-2 text-[14px] text-slate-600 max-w-[52ch]">Calculs rapides, tendances énergétiques et découverte réseau.</p>
           </div>
           <MetricsLinks locale={locale} />
+          <EnergyTrends />
           <div className="grid md:grid-cols-2 gap-6">
+            <a href={`/${locale}/metriques/tendances`} className="md:col-span-2 block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">Historique</div>
+              <h2 className="mt-2 text-[22px] font-extrabold">Tendances énergétiques 1 h – 30 j</h2>
+            </a>
             <a href={`/${locale}/metriques`} className="md:col-span-2 block bg-white border rounded-2xl p-6 hover:border-[#0176D3]">
               <div className="text-[11px] font-bold uppercase tracking-widest text-[#0176D3]">ISO 30134</div>
               <h2 className="mt-2 text-[22px] font-extrabold">PUE · WUE · CUE · ERF ensemble</h2>

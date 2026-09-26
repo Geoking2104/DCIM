@@ -3,10 +3,8 @@ export const METRIC_LINKS = (locale: string) => [
   { href: `/${locale}/metriques/tendances`, label: 'Tendances', path: '/metriques/tendances' },
   { href: `/${locale}/metriques/optimiser`, label: 'Optimiser', path: '/metriques/optimiser' },
   { href: `/${locale}/metriques/predictif`, label: 'Prédictif', path: '/metriques/predictif' },
+  { href: `/${locale}/supervision/bms`, label: 'BMS', path: '/supervision/bms' },
   { href: `/${locale}/outils/pue`, label: 'PUE', path: '/outils/pue' },
-  { href: `/${locale}/outils/wue`, label: 'WUE', path: '/outils/wue' },
-  { href: `/${locale}/outils/cue`, label: 'CUE', path: '/outils/cue' },
-  { href: `/${locale}/outils/erf`, label: 'ERF', path: '/outils/erf' },
   { href: `/${locale}/power`, label: 'Puissance live', path: '/power' },
   { href: `/${locale}/eed`, label: 'Dossier EED', path: '/eed' },
   { href: `/${locale}/supervision`, label: 'Supervision', path: '/supervision' }

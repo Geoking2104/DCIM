@@ -9,7 +9,8 @@ const ROWS = [
   ['Collecte', 'Telegraf', 'SNMP + Redfish'],
   ['Historique', 'ClickHouse', 'dcim.power_metrics'],
   ['Alerte', 'Grafana + Prometheus', 'webhook /api/alerts'],
-  ['Visualisation', 'Grafana', 'http://localhost:3001']
+  ['Visualisation', 'Grafana', 'http://localhost:3001'],
+  ['BMS', 'BACnet / Modbus', '/fr/supervision/bms']
 ];
 
 export default function SupervisionPage({ params: { locale } }: { params: { locale: string } }) {
@@ -20,8 +21,8 @@ export default function SupervisionPage({ params: { locale } }: { params: { loca
         <h1 className="text-[28px] font-extrabold">Supervision</h1>
         <MetricsLinks locale={locale} current="/supervision" />
         <p className="text-[13px] text-[#444]">
-          Grafana local : <a className="underline" href="http://localhost:3001">:3001</a>
-          {' · '}Prometheus : <a className="underline" href="http://localhost:9090">:9090</a>
+          Grafana : <a className="underline" href="http://localhost:3001">:3001</a>
+          {' · '}BMS : <a className="underline" href={`/${locale}/supervision/bms`}>points froid</a>
         </p>
         <table className="w-full text-[13px] bg-white border">
           <tbody>

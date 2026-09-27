@@ -139,6 +139,6 @@ docker compose up -d
 cd web && cp .env.example .env.local && npm ci && npm run dev
 ```
 
-The UI listens on [http://localhost:3000](http://localhost:3000) (`/fr` by default, power view at `/fr/power`). It talks to GraphQL at `NEXT_PUBLIC_GRAPHQL_URL` and ClickHouse at `CLICKHOUSE_URL`, and falls back to mock telemetry when those services are offline.
+The UI listens on [http://localhost:3000](http://localhost:3000) (`/fr` by default, power view at `/fr/power`). It talks to GraphQL at `NEXT_PUBLIC_GRAPHQL_URL` and ClickHouse at `CLICKHOUSE_URL`. Missing live sources fail visibly; sample telemetry is enabled only when both documented demo-mode flags are set explicitly.
 
 Do not use the example credentials from `docker-compose.yml` in production. Production deployments require managed secrets, encryption, backups, retention policies, tenant isolation, and a validated evidence-export process.

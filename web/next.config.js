@@ -3,6 +3,9 @@ const withNextIntl = createNextIntlPlugin('./lib/i18n.ts');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: __dirname
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 30,

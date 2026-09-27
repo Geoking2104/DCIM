@@ -13,7 +13,7 @@ const intl = createMiddleware({
 
 const PROTECTED = /^\/(fr|en)\/(plateforme|power|modules|eed)(\/|$)/;
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (PROTECTED.test(pathname)) {
     const session = await readSessionToken(req.cookies.get(sessionCookieName())?.value);

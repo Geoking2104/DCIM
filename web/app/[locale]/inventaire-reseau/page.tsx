@@ -4,7 +4,8 @@ import NetworkInventory from '@/components/network/NetworkInventory';
 
 export const dynamic = 'force-dynamic';
 
-export default function InventaireReseauPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function InventaireReseauPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

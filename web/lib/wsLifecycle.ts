@@ -18,5 +18,7 @@ export function setWsPhase(next: WsPhase, nextDetail = '') {
 
 export function onWsPhase(fn: Listener) {
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }

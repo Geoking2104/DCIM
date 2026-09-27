@@ -1,7 +1,7 @@
 //! Palier B : découverte BMC via [libredfish](https://crates.io/crates/libredfish).
 //! Lecture seule (pas de reset / power control exposé).
 
-use libredfish::{Endpoint, Redfish, RedfishClientPool};
+use libredfish::{Endpoint, RedfishClientPool};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

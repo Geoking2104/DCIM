@@ -47,7 +47,7 @@ export default function LivePue({ rackId }: { rackId?: string }) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={hist}>
               <YAxis hide domain={['auto', 'auto']} />
-              <Tooltip formatter={(v: number) => v.toFixed(3)} />
+              <Tooltip formatter={(value) => Number(value ?? 0).toFixed(3)} />
               <Line type="monotone" dataKey="v" stroke="#0176D3" dot={false} strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>

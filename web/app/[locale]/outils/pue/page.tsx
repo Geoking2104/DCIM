@@ -4,7 +4,8 @@ import EnergyCalculator from '@/components/EnergyCalculator';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 import LivePue from '@/components/metrics/LivePue';
 
-export default function PuePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function PuePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

@@ -11,7 +11,8 @@ import { MODULE_SLUGS, MODULES_FR } from '@/lib/modules';
 
 export const dynamic = 'force-dynamic';
 
-export default function PlateformePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function PlateformePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header/>

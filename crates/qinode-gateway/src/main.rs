@@ -1,8 +1,9 @@
-use async_graphql::Data;
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
+use async_graphql::{http::ALL_WEBSOCKET_PROTOCOLS, Data};
+use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
-    extract::State,
+    extract::{State, WebSocketUpgrade},
     http::{header::AUTHORIZATION, StatusCode},
+    response::Response,
     routing::{get, post},
     Json, Router,
 };
@@ -34,19 +35,6 @@ struct Health {
     nest_graphql: String,
 }
 
-fn ws_service(schema: AppSchema, kc: Arc<Keycloak>) -> GraphQLSubscription<AppSchema> {
-    GraphQLSubscription::new(schema).on_connection_init(move |value| {
-        let kc = kc.clone();
-        async move {
-            let auth = value.get("authorization").and_then(|v| v.as_str());
-            kc.verify_bearer(auth)
-                .await
-                .map_err(|e| async_graphql::Error::new(e.to_string()))?;
-            Ok(Data::default())
-        }
-    })
-}
-
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -69,7 +57,7 @@ async fn main() {
     let app = Router::new()
         .route("/health", get(health))
         .route("/graphql", post(graphql_handler))
-        .route_service("/graphql/ws", ws_service(gql, kc))
+        .route("/graphql/ws", get(graphql_ws_handler))
         .route("/v1/metrics/pue", post(calc_pue))
         .route("/v1/metrics/wue", post(calc_wue))
         .route("/v1/redfish/snapshot", post(redfish_snapshot))
@@ -85,6 +73,31 @@ async fn main() {
     tracing::info!(%addr, "qinode-gateway");
     let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
     axum::serve(listener, app).await.expect("serve");
+}
+
+async fn graphql_ws_handler(
+    protocol: GraphQLProtocol,
+    State(state): State<AppState>,
+    ws: WebSocketUpgrade,
+) -> Response {
+    let schema = state.gql.clone();
+    let kc = state.kc.clone();
+
+    ws.protocols(ALL_WEBSOCKET_PROTOCOLS)
+        .on_upgrade(move |stream| {
+            GraphQLWebSocket::new(stream, schema, protocol)
+                .on_connection_init(move |value| {
+                    let kc = kc.clone();
+                    async move {
+                        let auth = value.get("authorization").and_then(|v| v.as_str());
+                        kc.verify_bearer(auth)
+                            .await
+                            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+                        Ok(Data::default())
+                    }
+                })
+                .serve()
+        })
 }
 
 async fn health(State(state): State<AppState>) -> Json<Health> {
@@ -112,14 +125,27 @@ async fn graphql_handler(
     Ok(state.gql.execute(req.into_inner()).await.into())
 }
 
-async fn calc_pue(Json(input): Json<PueInput>) -> Result<Json<MetricPreview>, (StatusCode, String)> {
-    pue(input).map(Json).map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
+async fn calc_pue(
+    Json(input): Json<PueInput>,
+) -> Result<Json<MetricPreview>, (StatusCode, String)> {
+    pue(input)
+        .map(Json)
+        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
 }
-async fn calc_wue(Json(input): Json<WueInput>) -> Result<Json<MetricPreview>, (StatusCode, String)> {
-    wue(input).map(Json).map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
+async fn calc_wue(
+    Json(input): Json<WueInput>,
+) -> Result<Json<MetricPreview>, (StatusCode, String)> {
+    wue(input)
+        .map(Json)
+        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
 }
-async fn redfish_snapshot(Json(target): Json<BmcTarget>) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
-    snapshot(target).await.map(Json).map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
+async fn redfish_snapshot(
+    Json(target): Json<BmcTarget>,
+) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
+    snapshot(target)
+        .await
+        .map(Json)
+        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))
 }
 async fn insert_power(
     State(state): State<AppState>,

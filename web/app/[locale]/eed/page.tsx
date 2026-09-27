@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function EedAlias({ params }: { params: { locale?: string } }) {
-  redirect(`/${params?.locale || 'fr'}/modules/conformite-eed`);
+export default async function EedAlias({ params }: { params: Promise<{ locale?: string }> }) {
+  const { locale } = await params;
+  redirect(`/${locale || 'fr'}/modules/conformite-eed`);
 }

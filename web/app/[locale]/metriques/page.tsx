@@ -4,7 +4,8 @@ import MetricsExplorer from '@/components/metrics/MetricsExplorer';
 
 export const dynamic = 'force-dynamic';
 
-export default function MetriquesPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function MetriquesPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

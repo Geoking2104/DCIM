@@ -1,6 +1,5 @@
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
@@ -9,7 +8,6 @@ import { TopologyModule } from './topology/topology.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -20,8 +18,15 @@ import { TopologyModule } from './topology/topology.module';
         connection?.context || { req },
       subscriptions: {
         'graphql-ws': {
-          onConnect: (ctx: { connectionParams?: { authorization?: string }; extra?: { request?: { headers?: Record<string, string> } } }) => {
-            const auth = ctx.connectionParams?.authorization || ctx.extra?.request?.headers?.authorization;
+          onConnect: (ctx) => {
+            const extra = ctx.extra as {
+              request?: { headers?: { authorization?: string } };
+            };
+            const parameterAuth = ctx.connectionParams?.authorization;
+            const auth =
+              typeof parameterAuth === 'string'
+                ? parameterAuth
+                : extra.request?.headers?.authorization;
             return { req: { headers: { authorization: auth } } };
           },
         },

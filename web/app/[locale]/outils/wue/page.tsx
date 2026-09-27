@@ -3,7 +3,8 @@ import Providers from '@/components/Providers';
 import EnergyCalculator from '@/components/EnergyCalculator';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 
-export default function WuePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function WuePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

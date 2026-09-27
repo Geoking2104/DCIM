@@ -12,12 +12,12 @@ export const metadata: Metadata = {
     'Previews EED (Règlement UE 2024/1364), calculs PUE/WUE/CUE/ERF, échelle A–G interne et export JSON dry-run vers le registre européen.'
 };
 
-export default function ConformiteEedPage({
+export default async function ConformiteEedPage({
   params
 }: {
-  params: { locale?: string };
+  params: Promise<{ locale?: string }>;
 }) {
-  const locale = params?.locale || 'fr';
+  const { locale = 'fr' } = await params;
   const defaultSiteId = 'site-paris-01';
   const defaultSiteName = 'Paris East High-Density Data Center';
 

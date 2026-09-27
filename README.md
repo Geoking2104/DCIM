@@ -2,6 +2,8 @@
 
 An autonomous **Data Center Infrastructure Management (DCIM)** platform designed as a Cognitive Source of Truth (CSoT). It combines graph-based topology, streaming telemetry, detailed power and cooling supervision, a WebGL digital twin, and an air-gapped AIOps engine.
 
+**Live product preview:** [dcim-web.vercel.app](https://dcim-web.vercel.app/) (French and English UI). The hosted application is a preview: pages can display demo or fallback data when the on-premises GraphQL, ClickHouse, or Rust services are unavailable.
+
 ## Core capabilities
 
 - **Graph-first CSoT:** Models spatial, electrical, cooling, network, application, tenant, and contractual relationships for blast-radius and dependency analysis.
@@ -40,7 +42,56 @@ flowchart LR
     F --> J[Local AIOps and RAG]
 ```
 
-The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The implemented `dcim-topology-service` currently manages racks and mounted devices and publishes GraphQL subscriptions. The `web/` Next.js app is the bilingual operations UI (platform overview + power-chain supervision). The broader compliance, CDU, heat-reuse, and tenant-allocation modules described in the specifications remain product requirements until implemented and tested.
+The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The tracked implementation includes a bilingual Next.js operations UI, a NestJS GraphQL service for rack, device, and network topology, initial Keycloak integration, a Rust gateway and domain crates, and a local monitoring overlay. Several UI paths still rely on demo or in-memory fallback data. Durable regulatory evidence, production telemetry ingestion, complete tenant isolation, CDU workflows, and the local AI engine remain incomplete.
+
+## Current implementation status
+
+| Area | Available today | Main gap before production |
+| --- | --- | --- |
+| Web application | Bilingual UI, topology and network views, power and sustainability metrics, EED preview, alert inbox | Make demo mode explicit and replace fallback data with validated production data paths |
+| Topology API | Neo4j-backed rack/device/network GraphQL operations, subscriptions, Keycloak groundwork | Expand automated tests and enforce authorization on every query, mutation, and subscription |
+| Rust services | PUE/WUE core, HTTP gateway, ClickHouse and Redfish foundations, GraphQL topology prototype | Replace the in-memory graph with Neo4j and complete JWKS and production-grade subscriptions |
+| Telemetry and operations | Docker Compose, ClickHouse, Redpanda, Prometheus, Grafana, Telegraf and BMS read/write interlock examples | Validate end-to-end ingestion, persistence, replay, alerting, backups, and deployment hardening |
+| Compliance and evidence | Requirements, regulatory baseline, metric previews, and EED demonstration UI | Implement versioned rules, quality gates, immutable snapshots, review workflow, exports, receipts, and official-label reconciliation |
+
+## Development priorities
+
+| Priority | Status | Workstream | Completion outcome |
+| --- | --- | --- | --- |
+| **P0** | **Complete (27 Sep 2026)** | Restore the delivery baseline | Web, NestJS, and Rust builds pass; reproducible lockfiles are tracked; GitHub Actions runs build, lint, test, and Rust format/clippy checks on every pull request |
+| **P0** | **Complete (27 Sep 2026)** | Security and dependency maintenance | Next.js and the npm dependency chains are upgraded with zero high-severity npm audit findings; Dependabot, dependency review, and secret scanning are configured; supported runtimes are documented |
+| **P1** | **Next** | Durable operational data path | Replace silent production fallbacks with an explicit demo mode; persist topology in Neo4j, telemetry in ClickHouse, and alerts/control actions in durable stores; validate Redfish, SNMP, BACnet, and Modbus ingestion |
+| **P1** | **Next** | Identity and tenant isolation | Complete Keycloak/JWKS integration and enforce RBAC/ABAC and tenant boundaries across HTTP, GraphQL, WebSockets, exports, caches, logs, and AI retrieval, with negative tests |
+| **P1** | **Next** | Regulatory evidence engine | Ship effective-dated PUE/WUE/ERF rules, data-quality gates, tenant allocation, locked evidence snapshots, four-eyes review, EU/national exports, submission receipts, and official-label reconciliation |
+| **P2** | **Later** | Production operations | Add migrations, TLS and managed secrets, health/readiness probes, SLOs, tracing, backup/restore tests, retention policies, HA deployment manifests, and disaster-recovery runbooks |
+| **P2** | **Later** | Advanced product capabilities | Connect the WebGL digital twin to live topology and telemetry, complete CDU/liquid-cooling and heat-reuse workflows, then validate predictive AIOps and the air-gapped copilot with human controls |
+
+The next milestone is **P1: durable operational data and tenant isolation**. Requirements and acceptance criteria are maintained in the [Functional Requirements](docs/functional-requirements.md); the Rust migration sequence is described in the [Rust roadmap](docs/rust-roadmap.md).
+
+## Supported development baseline
+
+- **Node.js:** 22.22.3 LTS (`.nvmrc`; package engines also accept Node 24.15 or newer within the Node 24 line)
+- **npm:** 10 or newer
+- **Rust:** current stable toolchain with `rustfmt` and `clippy`
+
+The CI-equivalent checks are:
+
+```bash
+cd web
+npm ci
+npm audit --audit-level=high
+npm run lint && npm run typecheck && npm test && npm run build
+
+cd ../dcim-topology-service
+npm ci
+npm audit --audit-level=high
+npm test
+
+cd ../crates
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-features
+```
 
 ## Metrics and supervision
 
@@ -84,7 +135,7 @@ Telegraf (SNMP/Redfish) → ClickHouse. Grafana alerting → webhook `POST /api/
 
 ```bash
 docker compose up -d
-cd web && cp .env.example .env.local && npm install && npm run dev
+cd web && cp .env.example .env.local && npm ci && npm run dev
 ```
 
 The UI listens on [http://localhost:3000](http://localhost:3000) (`/fr` by default, power view at `/fr/power`). It talks to GraphQL at `NEXT_PUBLIC_GRAPHQL_URL` and ClickHouse at `CLICKHOUSE_URL`, and falls back to mock telemetry when those services are offline.

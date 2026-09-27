@@ -3,7 +3,8 @@ import Providers from '@/components/Providers';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 import EnergyTrends from '@/components/metrics/EnergyTrends';
 
-export default function OutilsPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function OutilsPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

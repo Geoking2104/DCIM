@@ -3,17 +3,17 @@ import { Field, ObjectType } from '@nestjs/graphql';
 @ObjectType()
 export class WhoAmI {
   @Field()
-  sub: string;
+  sub!: string;
 
   @Field({ nullable: true })
   email?: string;
 
   @Field(() => [String])
-  roles: string[];
+  roles!: string[];
 
   @Field(() => [String])
-  groups: string[];
+  groups!: string[];
 
   @Field(() => [String])
-  tenants: string[];
+  tenants!: string[];
 }

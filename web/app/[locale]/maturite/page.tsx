@@ -1,6 +1,7 @@
 import MaturityQuiz from '@/components/MaturityQuiz';
 
-export default function MaturitePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function MaturitePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#032D60]">
       <header className="bg-[#032D60] text-white">

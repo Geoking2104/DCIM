@@ -5,7 +5,8 @@ import PredictiveControl from '@/components/metrics/PredictiveControl';
 
 export const dynamic = 'force-dynamic';
 
-export default function PredictifPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function PredictifPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

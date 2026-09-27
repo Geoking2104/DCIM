@@ -5,7 +5,8 @@ import EnergyTrends from '@/components/metrics/EnergyTrends';
 
 export const dynamic = 'force-dynamic';
 
-export default function TendancesPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function TendancesPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

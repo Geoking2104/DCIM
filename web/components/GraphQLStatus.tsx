@@ -15,7 +15,7 @@ export default function GraphQLStatus({
   lastEvent?: string;
 }) {
   const [ws, setWs] = useState<{ phase: WsPhase; detail: string }>(getWsPhase());
-  useEffect(() => onWsPhase((phase, detail) => setWs({ phase, detail })), []);
+  useEffect(() => onWsPhase((phase, detail) => setWs({ phase, detail: detail ?? '' })), []);
 
   const wsBadge =
     ws.phase === 'connected' ? 'bg-[#E6F8E9] text-[#0B7E25] WS' :

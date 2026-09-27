@@ -3,7 +3,8 @@ import Providers from '@/components/Providers';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 import RatioCalc from '@/components/metrics/RatioCalc';
 
-export default function ErfPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function ErfPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

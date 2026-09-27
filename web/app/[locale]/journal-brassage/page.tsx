@@ -4,7 +4,8 @@ import PatchJournal from '@/components/network/PatchJournal';
 
 export const dynamic = 'force-dynamic';
 
-export default function JournalBrassagePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function JournalBrassagePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

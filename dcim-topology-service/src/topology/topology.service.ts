@@ -110,7 +110,11 @@ export class TopologyService {
        OPTIONAL MATCH (d)-[old:INSTALLED_IN]->(:Rack) DELETE old
        CREATE (d)-[:INSTALLED_IN {startU: $startU, heightU: d.heightU}]->(target)
        SET d.startU = $startU RETURN d`,
-      input,
+      {
+        deviceId: input.deviceId,
+        rackId: input.rackId,
+        startU: input.startU,
+      },
     );
     if (result.records.length === 0) {
       throw new NotFoundException(`Device ${input.deviceId} or rack ${input.rackId} not found`);

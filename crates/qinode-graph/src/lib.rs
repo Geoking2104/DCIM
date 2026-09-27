@@ -1,8 +1,6 @@
 //! GraphQL HTTP + subscriptions `rackUpdated` / `deviceMounted`.
 
-use async_graphql::{
-    Context, InputObject, Object, Schema, SimpleObject, Subscription, ID,
-};
+use async_graphql::{Context, InputObject, Object, Schema, SimpleObject, Subscription, ID};
 use futures_util::Stream;
 use std::collections::HashMap;
 use std::pin::Pin;
@@ -50,6 +48,12 @@ impl Bus {
         let (racks, _) = broadcast::channel(64);
         let (devices, _) = broadcast::channel(64);
         Self { racks, devices }
+    }
+}
+
+impl Default for Bus {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -113,11 +117,18 @@ pub struct QueryRoot;
 impl QueryRoot {
     async fn racks(&self, ctx: &Context<'_>) -> Vec<Rack> {
         let store = ctx.data_unchecked::<SharedStore>().read().await;
-        store.racks.values().map(|r| hydrate(&store, r.clone())).collect()
+        store
+            .racks
+            .values()
+            .map(|r| hydrate(&store, r.clone()))
+            .collect()
     }
     async fn rack(&self, ctx: &Context<'_>, id: ID) -> Option<Rack> {
         let store = ctx.data_unchecked::<SharedStore>().read().await;
-        store.racks.get(id.as_str()).map(|r| hydrate(&store, r.clone()))
+        store
+            .racks
+            .get(id.as_str())
+            .map(|r| hydrate(&store, r.clone()))
     }
 }
 
@@ -143,10 +154,19 @@ impl MutationRoot {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
         let key = input.id.to_string();
         {
-            let rack = store.racks.get_mut(&key).ok_or_else(|| format!("Rack {key} introuvable"))?;
-            if let Some(n) = input.name { rack.name = n; }
-            if let Some(h) = input.height_u { rack.height_u = h; }
-            if let Some(s) = input.site_id { rack.site_id = s; }
+            let rack = store
+                .racks
+                .get_mut(&key)
+                .ok_or_else(|| format!("Rack {key} introuvable"))?;
+            if let Some(n) = input.name {
+                rack.name = n;
+            }
+            if let Some(h) = input.height_u {
+                rack.height_u = h;
+            }
+            if let Some(s) = input.site_id {
+                rack.site_id = s;
+            }
         }
         let rack = hydrate(&store, store.racks.get(&key).cloned().unwrap());
         emit_rack(ctx, &rack);
@@ -155,12 +175,21 @@ impl MutationRoot {
 
     async fn delete_rack(&self, ctx: &Context<'_>, id: ID) -> Result<bool, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
-        store.racks.remove(id.as_str()).ok_or_else(|| format!("Rack {id} introuvable"))?;
-        store.devices.retain(|_, d| d.rack_id.as_deref() != Some(id.as_str()));
+        store
+            .racks
+            .remove(id.as_str())
+            .ok_or_else(|| format!("Rack {} introuvable", id.as_str()))?;
+        store
+            .devices
+            .retain(|_, d| d.rack_id.as_deref() != Some(id.as_str()));
         Ok(true)
     }
 
-    async fn create_device_and_mount(&self, ctx: &Context<'_>, input: CreateDeviceInput) -> Result<Device, String> {
+    async fn create_device_and_mount(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateDeviceInput,
+    ) -> Result<Device, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
         if !store.racks.contains_key(&input.rack_id) {
             return Err(format!("Rack {} introuvable", input.rack_id));
@@ -183,24 +212,46 @@ impl MutationRoot {
         Ok(device)
     }
 
-    async fn update_device(&self, ctx: &Context<'_>, input: UpdateDeviceInput) -> Result<Device, String> {
+    async fn update_device(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateDeviceInput,
+    ) -> Result<Device, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
-        let d = store.devices.get_mut(input.id.as_str()).ok_or_else(|| format!("Device {} introuvable", input.id))?;
-        if let Some(n) = input.name { d.name = n; }
-        if let Some(m) = input.model { d.model = m; }
-        if let Some(s) = input.start_u { d.start_u = s; }
-        if let Some(h) = input.height_u { d.height_u = h; }
+        let d = store
+            .devices
+            .get_mut(input.id.as_str())
+            .ok_or_else(|| format!("Device {} introuvable", input.id.as_str()))?;
+        if let Some(n) = input.name {
+            d.name = n;
+        }
+        if let Some(m) = input.model {
+            d.model = m;
+        }
+        if let Some(s) = input.start_u {
+            d.start_u = s;
+        }
+        if let Some(h) = input.height_u {
+            d.height_u = h;
+        }
         let device = d.clone();
         emit_device(ctx, &device);
         Ok(device)
     }
 
-    async fn move_device(&self, ctx: &Context<'_>, input: MoveDeviceInput) -> Result<Device, String> {
+    async fn move_device(
+        &self,
+        ctx: &Context<'_>,
+        input: MoveDeviceInput,
+    ) -> Result<Device, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
         if !store.racks.contains_key(&input.rack_id) {
             return Err(format!("Rack {} introuvable", input.rack_id));
         }
-        let d = store.devices.get_mut(input.device_id.as_str()).ok_or_else(|| format!("Device {} introuvable", input.device_id))?;
+        let d = store
+            .devices
+            .get_mut(input.device_id.as_str())
+            .ok_or_else(|| format!("Device {} introuvable", input.device_id.as_str()))?;
         d.rack_id = Some(input.rack_id);
         d.start_u = input.start_u;
         let device = d.clone();
@@ -210,7 +261,10 @@ impl MutationRoot {
 
     async fn unmount_device(&self, ctx: &Context<'_>, id: ID) -> Result<bool, String> {
         let mut store = ctx.data_unchecked::<SharedStore>().write().await;
-        store.devices.remove(id.as_str()).ok_or_else(|| format!("Device {id} introuvable"))?;
+        store
+            .devices
+            .remove(id.as_str())
+            .ok_or_else(|| format!("Device {} introuvable", id.as_str()))?;
         Ok(true)
     }
 }

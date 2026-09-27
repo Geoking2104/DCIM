@@ -5,7 +5,8 @@ import TopologyView from '@/components/topology/TopologyView';
 
 export const dynamic = 'force-dynamic';
 
-export default function TopologiePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function TopologiePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

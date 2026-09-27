@@ -13,7 +13,8 @@ const ROWS = [
   ['BMS', 'BACnet / Modbus', '/fr/supervision/bms']
 ];
 
-export default function SupervisionPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function SupervisionPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

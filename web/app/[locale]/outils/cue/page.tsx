@@ -3,7 +3,8 @@ import Providers from '@/components/Providers';
 import MetricsLinks from '@/components/metrics/MetricsLinks';
 import RatioCalc from '@/components/metrics/RatioCalc';
 
-export default function CuePage({ params: { locale } }: { params: { locale: string } }) {
+export default async function CuePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

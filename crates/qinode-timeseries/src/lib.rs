@@ -63,7 +63,7 @@ impl ClickHouse {
         let sql = format!(
             "INSERT INTO {}.power_metrics (rack_id, grid_power_kw, ups_power_kw, pdu_power_kw, rack_power_kw, battery_cell_temp, voltage) VALUES ('{}', {}, {}, {}, {}, {}, {})",
             self.db,
-            row.rack_id.replace('\\', "").replace('\'', ""),
+            row.rack_id.replace(['\\', '\''], ""),
             row.grid_kw,
             row.ups_kw,
             row.pdu_kw,

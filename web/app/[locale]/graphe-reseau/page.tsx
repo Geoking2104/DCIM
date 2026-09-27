@@ -5,7 +5,8 @@ import NetworkGraph from '@/components/network/NetworkGraph';
 
 export const dynamic = 'force-dynamic';
 
-export default function GrapheReseauPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function GrapheReseauPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   return (
     <Providers>
       <Header />

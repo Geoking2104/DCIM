@@ -7,11 +7,13 @@ export default function GraphQLStatus({
   error,
   loading,
   live,
+  demo,
   lastEvent
 }: {
   error?: ClassifiedGraphQLError | null;
   loading?: boolean;
   live?: boolean;
+  demo?: boolean;
   lastEvent?: string;
 }) {
   const [ws, setWs] = useState<{ phase: WsPhase; detail: string }>(getWsPhase());
@@ -29,7 +31,8 @@ export default function GraphQLStatus({
       <span className={`slds-badge ${wsBadge}`}>{ws.phase === 'idle' ? 'WS idle' : ws.phase}</span>
       {live && <span className="slds-badge bg-[#E6F8E9] text-[#0B7E25]">LIVE</span>}
       {!live && loading && !error && <span className="slds-badge bg-[#E6F2FE] text-[#0176D3]">…</span>}
-      {!live && !loading && !error && <span className="slds-badge bg-[#FFF0C2] text-[#7A4E00]">MOCK</span>}
+      {!live && demo && !loading && !error && <span className="slds-badge bg-[#FFF0C2] text-[#7A4E00]">DEMO</span>}
+      {!live && !demo && !loading && !error && <span className="slds-badge bg-[#F3F3F3] text-[#444]">EMPTY</span>}
       {error && <span className="slds-badge bg-[#FFF0F0] text-[#C23934]">{error.kind}</span>}
       {lastEvent && <span className="slds-badge bg-[#F3F3F3] text-[10px]">{lastEvent}</span>}
     </span>

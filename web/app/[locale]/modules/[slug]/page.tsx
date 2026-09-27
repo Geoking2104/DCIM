@@ -1,6 +1,6 @@
 import Providers from '@/components/Providers';
 import ModulePage from '@/components/ModulePage';
-import { MODULE_SLUGS, getModule } from '@/lib/modules';
+import { getModule } from '@/lib/modules';
 
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;

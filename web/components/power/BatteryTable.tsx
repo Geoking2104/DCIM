@@ -3,15 +3,32 @@ import { useEffect, useState } from 'react';
 
 export default function BatteryTable({ rackId='RACK-05' }: { rackId?: string }) {
   const [cells, setCells] = useState<any[]>([]);
+  const [source, setSource] = useState<'live' | 'demo' | 'unavailable'>('unavailable');
+  const [error, setError] = useState('');
   useEffect(()=>{
-    fetch(`/api/clickhouse/battery?rack=${rackId}`).then(r=>r.json()).then(setCells);
-    const iv=setInterval(()=>fetch(`/api/clickhouse/battery?rack=${rackId}`).then(r=>r.json()).then(setCells),15000);
+    async function load() {
+      try {
+        const res = await fetch(`/api/clickhouse/battery?rack=${rackId}`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error?.message || `HTTP ${res.status}`);
+        setCells(Array.isArray(json) ? json : []);
+        setSource(res.headers.get('x-dcim-data-source') === 'demo' ? 'demo' : 'live');
+        setError('');
+      } catch (e) {
+        setCells([]);
+        setSource('unavailable');
+        setError(e instanceof Error ? e.message : 'ClickHouse indisponible');
+      }
+    }
+    void load();
+    const iv=setInterval(load,15000);
     return ()=>clearInterval(iv);
   },[rackId]);
 
   return (
     <div className="slds-card overflow-hidden">
-      <div className="p-3 border-b flex justify-between"><div className="text-[12px] font-bold uppercase">Battery Cells • {rackId} • Neo4j CSoT + ClickHouse TS</div><span className="slds-badge bg-[#FFF0C2] text-[#7A4E00]">CELL-06 warning</span></div>
+      <div className="p-3 border-b flex justify-between"><div className="text-[12px] font-bold uppercase">Battery Cells • {rackId} • Neo4j CSoT + ClickHouse TS</div><span className="slds-badge bg-[#FFF0C2] text-[#7A4E00]">{source.toUpperCase()}</span></div>
+      {error && <p className="p-3 text-[12px] text-[#C23934]">{error}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-[11px]">
           <thead className="bg-[#FAFAF9] uppercase text-[10px] text-[#706E6B]"><tr><th className="p-2 text-left">Cell</th><th className="p-2">Voltage</th><th className="p-2">Temp</th><th className="p-2">SoC</th><th className="p-2">Status</th><th className="p-2">Last</th></tr></thead>

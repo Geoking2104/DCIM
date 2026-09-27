@@ -8,10 +8,12 @@ export default function PredictiveControl() {
   const [data, setData] = useState<any>(null);
   const [log, setLog] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
 
   async function refreshLog() {
     const res = await fetch('/api/metrics/predict/actions');
     const json = await res.json();
+    if (!res.ok) throw new Error(json?.error?.message || `HTTP ${res.status}`);
     setLog(json.items || []);
   }
 
@@ -19,23 +21,39 @@ export default function PredictiveControl() {
     const rack = readLastRack();
     const q = rack ? `?rack=${encodeURIComponent(rack)}` : '';
     fetch(`/api/metrics/predict${q}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData(null));
-    refreshLog();
+      .then(async (r) => {
+        const json = await r.json();
+        if (!r.ok) throw new Error(json?.error?.message || `HTTP ${r.status}`);
+        return json;
+      })
+      .then((json) => {
+        setData(json);
+        setError('');
+      })
+      .catch((e) => {
+        setData(null);
+        setError(e instanceof Error ? e.message : 'Prévision indisponible');
+      });
+    refreshLog().catch((e) => setError(e instanceof Error ? e.message : 'Journal indisponible'));
   }, []);
 
   async function decide(a: any, status: 'planned' | 'dismissed') {
     setMsg('');
-    await fetch('/api/metrics/predict/actions', {
+    const res = await fetch('/api/metrics/predict/actions', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ actionId: a.id, action: a.action, when: a.when, status })
     });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json?.error?.message || `HTTP ${res.status}`);
+      return;
+    }
     setMsg(status === 'planned' ? 'Action planifiée (pas envoyée au BMS).' : 'Action écartée.');
-    refreshLog();
+    refreshLog().catch((e) => setError(e instanceof Error ? e.message : 'Journal indisponible'));
   }
 
+  if (error) return <p className="text-[13px] text-[#C23934]">{error}</p>;
   if (!data) return <p className="text-[13px] text-[#706E6B]">Calcul de la prévision…</p>;
 
   return (

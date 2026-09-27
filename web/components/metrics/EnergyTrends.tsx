@@ -25,6 +25,8 @@ const RANGES = [
 export default function EnergyTrends({ rackId }: { rackId?: string }) {
   const [rows, setRows] = useState<Point[]>([]);
   const [live, setLive] = useState(false);
+  const [source, setSource] = useState<'live' | 'demo' | 'unavailable'>('unavailable');
+  const [error, setError] = useState('');
   const [rack, setRack] = useState(rackId || '');
   const [hours, setHours] = useState(24);
 
@@ -40,6 +42,7 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
         if (rack) params.set('rack', rack);
         const res = await fetch(`/api/clickhouse/power?${params}`);
         const json = await res.json();
+        if (!res.ok) throw new Error(json?.error?.message || `HTTP ${res.status}`);
         if (stop) return;
         const mapped: Point[] = (Array.isArray(json) ? json : []).map((p: any) => {
           const grid = Number(p.grid_kw) || 0;
@@ -54,9 +57,16 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
           };
         });
         setRows(mapped);
-        setLive(mapped.length > 0);
-      } catch {
-        if (!stop) setLive(false);
+        const nextSource = res.headers.get('x-dcim-data-source') === 'demo' ? 'demo' : 'live';
+        setSource(nextSource);
+        setLive(nextSource === 'live' && mapped.length > 0);
+        setError('');
+      } catch (e) {
+        if (!stop) {
+          setLive(false);
+          setSource('unavailable');
+          setError(e instanceof Error ? e.message : 'ClickHouse indisponible');
+        }
       }
     }
     load();
@@ -101,9 +111,12 @@ export default function EnergyTrends({ rackId }: { rackId?: string }) {
               {r.label}
             </button>
           ))}
-          <span className={`w-2 h-2 rounded-full ${live ? 'bg-green-500' : 'bg-gray-300'}`} />
+          <span className={`w-2 h-2 rounded-full ${live ? 'bg-green-500' : source === 'demo' ? 'bg-amber-500' : 'bg-gray-300'}`} />
+          <span className="text-[11px] uppercase">{source}</span>
         </div>
       </div>
+
+      {error && <p className="text-[12px] text-[#C23934]">{error}</p>}
 
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[12px]">

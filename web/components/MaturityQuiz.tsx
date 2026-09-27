@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import {
-  AXES,
   QUESTIONS,
   Answers,
   scoreAxes,

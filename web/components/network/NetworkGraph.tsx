@@ -2,6 +2,7 @@
 import { gql, useLazyQuery, useQuery } from '@apollo/client';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
 
 const LAST_RACK = 'qinode.lastRack';
 const RACKS = gql`query GRacks { racks { id name } }`;
@@ -41,7 +42,10 @@ export default function NetworkGraph({ locale }: { locale: string }) {
   const [load, { data, loading }] = useLazyQuery(LINKS, { fetchPolicy: 'no-cache' });
   const [impact, { data: impactData }] = useLazyQuery(IMPACT, { fetchPolicy: 'no-cache' });
   const live = Boolean(data?.networkLinks);
-  const links: LinkN[] = live ? data.networkLinks : DEMO;
+  const links = useMemo<LinkN[]>(
+    () => (live ? data.networkLinks : DEMO_MODE_ENABLED ? DEMO : []),
+    [data, live]
+  );
   const focused = useMemo(() => {
     if (!isolate || (!focusA && !focusB)) return links;
     const next = links.filter((l) => [l.a.id, l.b.id].includes(focusA || '') || [l.a.id, l.b.id].includes(focusB || ''));
@@ -79,7 +83,9 @@ export default function NetworkGraph({ locale }: { locale: string }) {
     <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-5">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase font-bold tracking-wide text-[#706E6B]">Graphe {live ? '· live' : '· démo'}</p>
+          <p className="text-[11px] uppercase font-bold tracking-wide text-[#706E6B]">
+            Graphe {live ? '· live' : DEMO_MODE_ENABLED ? '· démo' : '· indisponible'}
+          </p>
           <h1 className="text-[28px] font-extrabold">Topologie réseau</h1>
           <p className="text-[13px] text-[#444] max-w-[60ch]">
             {focusA ? `Focus journal · ${focusA.slice(0, 8)}… ↔ ${focusB?.slice(0, 8) || '—'}…` : 'Les nœuds touchés par l’impact passent en ambre.'}
@@ -94,7 +100,7 @@ export default function NetworkGraph({ locale }: { locale: string }) {
               <a className="text-[12px] underline" href={`/${locale}/graphe-reseau`}>Effacer le focus</a>
             </>
           )}
-          <select className="border rounded px-3 py-2 text-[13px]" value={rackId} onChange={(e) => setRackId(e.target.value)}>
+          <select className="border rounded px-3 py-2 text-[13px]" value={rackId} onChange={(e) => setRackId(e.target.value)} disabled={loading}>
             <option value="">Rack…</option>
             {racks.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
@@ -103,6 +109,11 @@ export default function NetworkGraph({ locale }: { locale: string }) {
       </div>
       <div className="grid lg:grid-cols-[1fr_240px] gap-4">
         <div className="rounded-xl border bg-[#071422] overflow-hidden">
+          {links.length === 0 && (
+            <div className="border-b border-[#3D5A80] px-4 py-3 text-[12px] text-[#E8F1FF]">
+              Aucune donnée réseau réelle disponible ; le mode démo est désactivé.
+            </div>
+          )}
           <svg viewBox="0 0 960 520" className="w-full h-auto">
             {layout.edges.map((e) => {
               const on = (hot.has(e.aId) && hot.has(e.bId)) || (e.aId === focusA && e.bId === focusB) || (e.aId === focusB && e.bId === focusA);

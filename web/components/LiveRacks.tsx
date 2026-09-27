@@ -6,6 +6,7 @@ import { GRAPHQL_URL } from '@/lib/graphql';
 import { TOPOLOGY_LIFECYCLE } from '@/lib/topologySubscriptions';
 import GraphQLStatus from '@/components/GraphQLStatus';
 import OptimizedImage from '@/components/OptimizedImage';
+import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
 
 const RACKS_QUERY = gql`
   query Racks {
@@ -50,13 +51,21 @@ export default function LiveRacks(){
         powerLoad: r.devices?.length || 0,
         capacity: r.heightU
       }))
-    : mock;
+    : DEMO_MODE_ENABLED
+      ? mock
+      : [];
 
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-bold text-[16px]">Operations • Data Table</h3>
-        <GraphQLStatus error={classified} loading={loading} live={live} lastEvent={lastEvent} />
+        <GraphQLStatus
+          error={classified}
+          loading={loading}
+          live={live}
+          demo={!live && DEMO_MODE_ENABLED}
+          lastEvent={lastEvent}
+        />
       </div>
       <div className="slds-card mt-3 overflow-hidden">
         <OptimizedImage src="/images/img-0.svg" alt="" width={1200} height={160} className="h-[160px] w-full object-cover" sizes="(max-width: 1440px) 100vw, 1440px" />
@@ -71,6 +80,13 @@ export default function LiveRacks(){
             </tr>
           </thead>
           <tbody className="divide-y">
+            {racks.length === 0 && !loading && (
+              <tr>
+                <td className="p-4 text-[#706E6B]" colSpan={5}>
+                  Aucune donnée GraphQL disponible. Le mode démo est désactivé.
+                </td>
+              </tr>
+            )}
             {racks.map((r: any)=>(
               <tr key={r.id} className={r.status==='Hotspot'?'bg-[#FFF9E6]':''}>
                 <td className="p-2.5 font-medium">{r.name || r.id}</td>

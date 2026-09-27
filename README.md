@@ -48,7 +48,7 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 
 | Area | Available today | Main gap before production |
 | --- | --- | --- |
-| Web application | Bilingual UI, topology and network views, power and sustainability metrics, EED preview, alert inbox | Make demo mode explicit and replace fallback data with validated production data paths |
+| Web application | Bilingual UI, topology and network views, power and sustainability metrics, EED preview, alert inbox, explicit live/demo data policy | Replace remaining demonstrations with validated production connectors and operational data paths |
 | Topology API | Neo4j-backed rack/device/network GraphQL operations, subscriptions, Keycloak groundwork | Expand automated tests and enforce authorization on every query, mutation, and subscription |
 | Rust services | PUE/WUE core, HTTP gateway, ClickHouse and Redfish foundations, GraphQL topology prototype | Replace the in-memory graph with Neo4j and complete JWKS and production-grade subscriptions |
 | Telemetry and operations | Docker Compose, ClickHouse, Redpanda, Prometheus, Grafana, Telegraf and BMS read/write interlock examples | Validate end-to-end ingestion, persistence, replay, alerting, backups, and deployment hardening |
@@ -60,7 +60,7 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 | --- | --- | --- | --- |
 | **P0** | **Complete (27 Sep 2026)** | Restore the delivery baseline | Web, NestJS, and Rust builds pass; reproducible lockfiles are tracked; GitHub Actions runs build, lint, test, and Rust format/clippy checks on every pull request |
 | **P0** | **Complete (27 Sep 2026)** | Security and dependency maintenance | Next.js and the npm dependency chains are upgraded with zero high-severity npm audit findings; Dependabot, dependency review, and secret scanning are configured; supported runtimes are documented |
-| **P1** | **Next** | Durable operational data path | Replace silent production fallbacks with an explicit demo mode; persist topology in Neo4j, telemetry in ClickHouse, and alerts/control actions in durable stores; validate Redfish, SNMP, BACnet, and Modbus ingestion |
+| **P1** | **In progress** | Durable operational data path | Explicit demo mode and fail-visible source handling are implemented; persist all topology in Neo4j, validate ClickHouse retention/replay, and complete Redfish, SNMP, BACnet, and Modbus ingestion |
 | **P1** | **Next** | Identity and tenant isolation | Complete Keycloak/JWKS integration and enforce RBAC/ABAC and tenant boundaries across HTTP, GraphQL, WebSockets, exports, caches, logs, and AI retrieval, with negative tests |
 | **P1** | **Next** | Regulatory evidence engine | Ship effective-dated PUE/WUE/ERF rules, data-quality gates, tenant allocation, locked evidence snapshots, four-eyes review, EU/national exports, submission receipts, and official-label reconciliation |
 | **P2** | **Later** | Production operations | Add migrations, TLS and managed secrets, health/readiness probes, SLOs, tracing, backup/restore tests, retention policies, HA deployment manifests, and disaster-recovery runbooks |
@@ -125,6 +125,7 @@ Telegraf (SNMP/Redfish) → ClickHouse. Grafana alerting → webhook `POST /api/
 - [Functional Requirements Document](docs/functional-requirements.md)
 - [Regulatory Compliance Baseline](docs/regulatory-compliance.md)
 - [Technical Architecture](docs/technical-architecture.md)
+- [Live and demonstration data modes](docs/data-modes.md)
 - [Operations Web UI](web/README.md)
 - [Metrics map](web/METRICS.md)
 - [Monitoring overlay](ops/MONITORING.md)

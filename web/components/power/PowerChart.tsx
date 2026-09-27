@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 
@@ -7,31 +7,36 @@ interface Point { timestamp: string; grid_kw: number; ups_kw: number; pdu_kw: nu
 
 export default function PowerChart({ rackId }: { rackId?: string }) {
   const [data, setData] = useState<Point[]>([]);
-  const [live, setLive] = useState(false);
+  const [source, setSource] = useState<'live' | 'demo' | 'unavailable'>('unavailable');
+  const [error, setError] = useState('');
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const res = await fetch(`/api/clickhouse/power${rackId ? `?rack=${rackId}` : ''}`);
       const json = await res.json();
-      setData(json);
-      setLive(true);
+      if (!res.ok) throw new Error(json?.error?.message || `HTTP ${res.status}`);
+      setData(Array.isArray(json) ? json : []);
+      setSource(res.headers.get('x-dcim-data-source') === 'demo' ? 'demo' : 'live');
+      setError('');
     } catch (e) {
-      console.error(e);
+      setSource('unavailable');
+      setError(e instanceof Error ? e.message : 'ClickHouse indisponible');
     }
-  };
+  }, [rackId]);
 
   useEffect(() => {
     fetchData();
     const iv = setInterval(fetchData, 10000);
     return () => clearInterval(iv);
-  }, [rackId]);
+  }, [fetchData]);
 
   return (
     <div className="slds-card p-5">
       <div className="flex justify-between items-center mb-4">
         <div><div className="text-[12px] font-bold uppercase">Power Timeseries • ClickHouse • Last 60 min • SLDS Chart Pattern</div><div className="text-[11px] text-[#706E6B]">SELECT toStartOfMinute(timestamp), avg(power) FROM dcim.power_metrics WHERE now()-1h GROUP BY timestamp</div></div>
-        <div className="flex gap-2 items-center"><span className={`w-2 h-2 rounded-full ${live?'bg-green-500 animate-pulse':'bg-gray-300'}`}/><span className="text-[11px]">{live?'LIVE 10s poll':'connecting...'}</span></div>
+        <div className="flex gap-2 items-center"><span className={`w-2 h-2 rounded-full ${source === 'live'?'bg-green-500 animate-pulse':source === 'demo'?'bg-amber-500':'bg-gray-300'}`}/><span className="text-[11px]">{source === 'live'?'LIVE 10s poll':source === 'demo'?'DEMO':'indisponible'}</span></div>
       </div>
+      {error && <p className="mb-3 text-[12px] text-[#C23934]">{error}</p>}
       <div className="h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>

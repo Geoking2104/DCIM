@@ -1,3 +1,5 @@
+import { serverDemoModeEnabled } from '@/lib/dataMode';
+
 export type Tenant = {
   slug: string;
   name: string;
@@ -11,12 +13,16 @@ const FALLBACK: Tenant[] = [
 
 export function catalog(): Tenant[] {
   const raw = process.env.TENANT_CATALOG;
-  if (!raw) return FALLBACK;
+  if (!raw) return serverDemoModeEnabled() ? FALLBACK : [];
   try {
     const parsed = JSON.parse(raw) as Tenant[];
-    return Array.isArray(parsed) && parsed.length ? parsed : FALLBACK;
+    return Array.isArray(parsed) && parsed.length
+      ? parsed
+      : serverDemoModeEnabled()
+        ? FALLBACK
+        : [];
   } catch {
-    return FALLBACK;
+    return serverDemoModeEnabled() ? FALLBACK : [];
   }
 }
 
@@ -34,7 +40,7 @@ export function resolveTenants(slugs: string[]): Tenant[] {
     const known = cat.find((t) => t.slug === slug);
     out.push(known || { slug, name: slug.replace(/-/g, ' ') });
   }
-  if (!out.length) return cat;
+  if (!out.length) return serverDemoModeEnabled() ? cat : [];
   return out;
 }
 

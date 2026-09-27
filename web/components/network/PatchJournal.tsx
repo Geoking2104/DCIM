@@ -26,7 +26,7 @@ export default function PatchJournal({ locale }: { locale: string }) {
   const [period, setPeriod] = useState<Period>('all');
   const [actor, setActor] = useState('all');
   const [q, setQ] = useState('');
-  const rows = data?.patchDecisions || [];
+  const rows = useMemo(() => data?.patchDecisions || [], [data?.patchDecisions]);
   const windowed = useMemo(() => {
     const t = since(period);
     return t ? rows.filter((r: any) => new Date(r.at).getTime() >= t) : rows;

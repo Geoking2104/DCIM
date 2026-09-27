@@ -1,6 +1,7 @@
 'use client';
 import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { useState } from 'react';
+import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
 
 const RACKS = gql`query NetRacks { racks { id name } }`;
 const LINKS = gql`
@@ -22,8 +23,8 @@ const DISCOVER = gql`
 `;
 
 export default function NetworkInventory() {
-  const { data: racksData } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
-  const racks = racksData?.racks || [{ id: 'demo', name: 'RACK-05 (démo)' }];
+  const { data: racksData, error: racksError } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
+  const racks = racksData?.racks || (DEMO_MODE_ENABLED ? [{ id: 'demo', name: 'RACK-05 (démo)' }] : []);
   const [rackId, setRackId] = useState<string>(racks[0]?.id);
   const [loadLinks, { data, loading }] = useLazyQuery(LINKS, { fetchPolicy: 'no-cache' });
   const [discover, { data: report, loading: running }] = useMutation(DISCOVER);
@@ -68,6 +69,12 @@ export default function NetworkInventory() {
           {loading ? 'Lecture…' : 'Lire les liens'}
         </button>
       </div>
+
+      {racksError && !DEMO_MODE_ENABLED && (
+        <div className="rounded border border-[#C23934] bg-white p-3 text-[13px] text-[#8E030F]">
+          Inventaire GraphQL indisponible. Aucun rack de démonstration n’a été injecté.
+        </div>
+      )}
 
       {report?.discoverNetwork && (
         <div className="slds-card p-4 text-[13px]">

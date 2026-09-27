@@ -3,20 +3,32 @@ import { useEffect, useState } from 'react';
 
 export default function BmsPanel() {
   const [data, setData] = useState<any>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetch('/api/bms/points')
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData(null));
+      .then(async (r) => {
+        const json = await r.json();
+        if (!r.ok) throw new Error(json?.error?.message || `HTTP ${r.status}`);
+        return json;
+      })
+      .then((json) => {
+        setData(json);
+        setError('');
+      })
+      .catch((e) => {
+        setData(null);
+        setError(e instanceof Error ? e.message : 'BMS indisponible');
+      });
   }, []);
 
+  if (error) return <p className="text-[13px] text-[#C23934]">{error}</p>;
   if (!data) return <p className="text-[13px] text-[#706E6B]">Lecture des points…</p>;
 
   return (
     <div className="space-y-6">
       <div className="text-[13px]">
-        Lien BMS : <strong>{data.connected ? data.protocol : 'démo (pas de BMS_URL)'}</strong>
+        Source BMS : <strong>{data.source === 'demo' ? 'démo explicite' : data.protocol}</strong>
         {' · '}boucle fermée : non
       </div>
       <table className="w-full text-[13px] bg-white border">

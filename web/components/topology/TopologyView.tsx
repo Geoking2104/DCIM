@@ -7,6 +7,7 @@ import { classifyGraphQLError } from '@/lib/graphqlErrors';
 import { GRAPHQL_URL } from '@/lib/graphql';
 import { readLastRack, writeLastRack } from '@/lib/lastRack';
 import RackElevation, { TopoRack } from './RackElevation';
+import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
 
 const RACKS = gql`
   query TopologyRacks {
@@ -57,7 +58,10 @@ export default function TopologyView() {
   });
 
   const live = Boolean(data?.racks?.length);
-  const racks: TopoRack[] = live ? data.racks : DEMO;
+  const racks = useMemo<TopoRack[]>(
+    () => (live ? data.racks : DEMO_MODE_ENABLED ? DEMO : []),
+    [data, live]
+  );
 
   useEffect(() => {
     const saved = readLastRack();
@@ -91,7 +95,13 @@ export default function TopologyView() {
             publient <code>topologyLifecycle</code> et rafraîchissent la scène.
           </p>
         </div>
-        <GraphQLStatus error={classified} loading={loading} live={live} lastEvent={lastEvent} />
+        <GraphQLStatus
+          error={classified}
+          loading={loading}
+          live={live}
+          demo={!live && DEMO_MODE_ENABLED}
+          lastEvent={lastEvent}
+        />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -109,6 +119,7 @@ export default function TopologyView() {
         ))}
       </div>
 
+      {current ? (
       <div className="grid lg:grid-cols-[280px_1fr_260px] gap-6 items-start">
         <RackElevation rack={current} selectedId={selDev} onSelect={setSelDev} />
         <div className="slds-card p-5 bg-white min-h-[320px]">
@@ -143,6 +154,11 @@ export default function TopologyView() {
           )}
         </aside>
       </div>
+      ) : (
+        <div className="slds-card border border-[#C23934] bg-white p-5 text-[13px] text-[#8E030F]">
+          Topologie indisponible. Configurez le service GraphQL ou activez explicitement le mode démo.
+        </div>
+      )}
     </div>
   );
 }

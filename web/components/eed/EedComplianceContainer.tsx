@@ -4,6 +4,7 @@ import { useQuery } from '@apollo/client';
 import { GET_SITE_EED_COMPLIANCE } from '@/lib/eedQueries';
 import { DEMO_EED, EedMetricsData, EUEnergyLabel } from '@/lib/eedDemo';
 import EedComplianceDashboard from './EedComplianceDashboard';
+import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
 
 export default function EedComplianceContainer({
   siteId = 'PAR-1',
@@ -20,7 +21,7 @@ export default function EedComplianceContainer({
   });
 
   const raw = data?.getSiteEedMetrics;
-  const view: EedMetricsData = raw
+  const view: EedMetricsData | null = raw
     ? {
         siteId: raw.siteId,
         siteName,
@@ -41,13 +42,23 @@ export default function EedComplianceContainer({
         eDcKwh: raw.totalEnergyInputKwh,
         eItKwh: raw.itEquipmentEnergyKwh
       }
-    : DEMO_EED;
+    : DEMO_MODE_ENABLED
+      ? DEMO_EED
+      : null;
+
+  if (!view) {
+    return (
+      <div className="rounded border border-[#C23934] bg-white p-4 text-[13px] text-[#8E030F]">
+        Les données EED GraphQL sont indisponibles et le mode démo est désactivé.
+      </div>
+    );
+  }
 
   return (
     <div>
-      {error && (
+      {error && DEMO_MODE_ENABLED && (
         <div className="mb-3 text-[11px] bg-[#FFF9E6] border px-3 py-2 rounded">
-          GraphQL EED injoignable — affichage du jeu de démo PAR-1.
+          GraphQL EED injoignable — mode démo explicite, jeu PAR-1 affiché.
         </div>
       )}
       <EedComplianceDashboard data={view} />

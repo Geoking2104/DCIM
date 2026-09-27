@@ -1,3 +1,10 @@
+import {
+  DataResult,
+  dataSourceUnavailable,
+  normalizeDataSourceError,
+  serverDemoModeEnabled
+} from '@/lib/dataMode';
+
 export type AlertEvent = {
   at: string;
   title: string;
@@ -29,28 +36,32 @@ export async function ensureAlertsTable() {
   ) ENGINE = MergeTree ORDER BY at`);
 }
 
-export async function pushAlert(raw: any): Promise<AlertEvent> {
+export async function pushAlert(raw: any): Promise<DataResult<AlertEvent>> {
   const ev: AlertEvent = {
     at: new Date().toISOString(),
     title: String(raw?.title || raw?.alerts?.[0]?.labels?.alertname || 'grafana'),
     status: String(raw?.status || raw?.state || raw?.alerts?.[0]?.status || 'firing'),
     raw
   };
-  box.unshift(ev);
-  if (box.length > MAX) box.pop();
-  try {
-    if (CH) {
+  if (CH) {
+    try {
       await ensureAlertsTable();
       const payload = esc(JSON.stringify(raw).slice(0, 8000));
       await ch(`INSERT INTO dcim.alerts (at, title, status, payload) VALUES (now64(3), '${esc(ev.title)}', '${esc(ev.status)}', '${payload}')`);
+      return { data: ev, source: 'live' };
+    } catch (error) {
+      if (!serverDemoModeEnabled()) throw normalizeDataSourceError('clickhouse', error);
+      console.warn('[alerts] ClickHouse unavailable; explicit demo memory store used', error);
     }
-  } catch (e) {
-    console.warn('[alerts] clickhouse skip', e);
+  } else if (!serverDemoModeEnabled()) {
+    dataSourceUnavailable('clickhouse', 'CLICKHOUSE_URL n’est pas configurée pour le journal d’alertes');
   }
-  return ev;
+  box.unshift(ev);
+  if (box.length > MAX) box.pop();
+  return { data: ev, source: 'demo' };
 }
 
-export async function listAlerts(): Promise<AlertEvent[]> {
+export async function listAlerts(): Promise<DataResult<AlertEvent[]>> {
   if (CH) {
     try {
       const res = await fetch(CH, {
@@ -58,13 +69,17 @@ export async function listAlerts(): Promise<AlertEvent[]> {
         headers: { 'content-type': 'text/plain' },
         body: 'SELECT at, title, status FROM dcim.alerts ORDER BY at DESC LIMIT 50 FORMAT JSON'
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 500)}`);
       const json = await res.json();
-      if (Array.isArray(json.data) && json.data.length) {
-        return json.data.map((r: any) => ({ at: r.at, title: r.title, status: r.status, raw: null }));
-      }
-    } catch {
-      /* fallback mémoire */
+      const data = Array.isArray(json.data)
+        ? json.data.map((r: any) => ({ at: r.at, title: r.title, status: r.status, raw: null }))
+        : [];
+      return { data, source: 'live' };
+    } catch (error) {
+      if (!serverDemoModeEnabled()) throw normalizeDataSourceError('clickhouse', error);
     }
+  } else if (!serverDemoModeEnabled()) {
+    dataSourceUnavailable('clickhouse', 'CLICKHOUSE_URL n’est pas configurée pour le journal d’alertes');
   }
-  return box;
+  return { data: box, source: 'demo' };
 }

@@ -6,16 +6,28 @@ type Hint = { id: string; title: string; detail: string; savingKw: number; sever
 
 export default function EnergyOptimize() {
   const [data, setData] = useState<{ pueAvg: number; overheadKw: number; hints: Hint[] } | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const rack = readLastRack();
     const q = rack ? `?rack=${encodeURIComponent(rack)}` : '';
     fetch(`/api/metrics/optimize${q}`)
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData(null));
+      .then(async (r) => {
+        const json = await r.json();
+        if (!r.ok) throw new Error(json?.error?.message || `HTTP ${r.status}`);
+        return json;
+      })
+      .then((json) => {
+        setData(json);
+        setError('');
+      })
+      .catch((e) => {
+        setData(null);
+        setError(e instanceof Error ? e.message : 'Analyse indisponible');
+      });
   }, []);
 
+  if (error) return <p className="text-[13px] text-[#C23934]">{error}</p>;
   if (!data) return <p className="text-[13px] text-[#706E6B]">Analyse 24 h…</p>;
 
   return (

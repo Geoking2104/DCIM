@@ -1,3 +1,10 @@
+import {
+  DataResult,
+  dataSourceUnavailable,
+  normalizeDataSourceError,
+  serverDemoModeEnabled
+} from '@/lib/dataMode';
+
 export interface PowerPoint {
   timestamp: string;
   grid_kw: number;
@@ -47,23 +54,29 @@ function mockSeries(hours: HistoryHours): PowerPoint[] {
 }
 
 export async function queryClickHouse(query: string): Promise<any[]> {
-  if (!process.env.CLICKHOUSE_URL) return [];
+  if (!process.env.CLICKHOUSE_URL) {
+    dataSourceUnavailable('clickhouse', 'CLICKHOUSE_URL n’est pas configurée');
+  }
   try {
     const res = await fetch(CLICKHOUSE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: query + ' FORMAT JSON'
     });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 500)}`);
+    }
     const json = await res.json();
-    return json.data || [];
+    return Array.isArray(json.data) ? json.data : [];
   } catch (e) {
-    console.error('ClickHouse query failed', e);
-    return [];
+    throw normalizeDataSourceError('clickhouse', e);
   }
 }
 
-export async function getPowerTimeseries(rackId?: string, hours: HistoryHours = 1): Promise<PowerPoint[]> {
-  if (!process.env.CLICKHOUSE_URL) return mockSeries(hours);
+export async function getPowerTimeseries(
+  rackId?: string,
+  hours: HistoryHours = 1
+): Promise<DataResult<PowerPoint[]>> {
   const safeRack = rackId ? rackId.replace(/'/g, '') : '';
   const q = `
     SELECT
@@ -80,13 +93,18 @@ export async function getPowerTimeseries(rackId?: string, hours: HistoryHours = 
     GROUP BY timestamp
     ORDER BY timestamp ASC
   `;
-  const data = await queryClickHouse(q);
-  return data.length ? (data as PowerPoint[]) : mockSeries(hours);
+  try {
+    const data = (await queryClickHouse(q)) as PowerPoint[];
+    if (data.length || !serverDemoModeEnabled()) return { data, source: 'live' };
+  } catch (error) {
+    if (!serverDemoModeEnabled()) throw error;
+  }
+  return { data: mockSeries(hours), source: 'demo' };
 }
 
-export async function getBatteryCells(rackId: string = 'RACK-05') {
-  if (!process.env.CLICKHOUSE_URL) {
-    return Array.from({ length: 12 }, (_, i) => ({
+export async function getBatteryCells(rackId: string = 'RACK-05'): Promise<DataResult<any[]>> {
+  const demoCells = () =>
+    Array.from({ length: 12 }, (_, i) => ({
       cell_id: `CELL-${String(i + 1).padStart(2, '0')}`,
       rack_id: rackId,
       voltage: 3.65 + (Math.random() - 0.5) * 0.1,
@@ -95,8 +113,13 @@ export async function getBatteryCells(rackId: string = 'RACK-05') {
       status: i === 5 ? 'warning' : 'ok',
       last_update: new Date().toISOString()
     }));
-  }
   const safe = rackId.replace(/'/g, '');
   const q = `SELECT cell_id, voltage, temp, soc, status FROM ${CLICKHOUSE_DB}.battery_cells WHERE rack_id='${safe}' ORDER BY cell_id`;
-  return await queryClickHouse(q);
+  try {
+    const data = await queryClickHouse(q);
+    if (data.length || !serverDemoModeEnabled()) return { data, source: 'live' };
+  } catch (error) {
+    if (!serverDemoModeEnabled()) throw error;
+  }
+  return { data: demoCells(), source: 'demo' };
 }

@@ -103,6 +103,7 @@ Product UI (see [web/METRICS.md](web/METRICS.md)):
 | Calculatrices | `/fr/outils/pue` `wue` `cue` `erf` |
 | Puissance live | `/fr/power` |
 | EED | `/fr/eed` |
+| Jumeau thermique 3D / flux HVAC | `/fr/topologie/thermique` |
 | Supervision + inbox alertes | `/fr/supervision` |
 
 APIs : `POST /api/metrics/{pue,wue,cue,erf}`, `GET /api/metrics/live?rack=`, `GET|POST /api/alerts`.

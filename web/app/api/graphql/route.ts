@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDemoModeEnabled } from '@/lib/dataMode';
-import { DataSourceUnavailableError } from '@/lib/dataMode';
-import { dataSourceErrorResponse } from '@/lib/dataSourceResponse';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,14 +37,6 @@ async function proxy(url: string, req: NextRequest, body: string) {
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
-  if ((process.env.GRAPHQL_UPSTREAM || 'nest').toLowerCase() === 'rust' && !serverDemoModeEnabled()) {
-    return dataSourceErrorResponse(
-      new DataSourceUnavailableError(
-        'graphql',
-        'Le graphe Rust est encore en mémoire ; utilisez le service NestJS/Neo4j en mode opérationnel'
-      )
-    );
-  }
   const first = primary();
   try {
     const out = await proxy(first, req, body);

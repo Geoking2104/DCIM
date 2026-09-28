@@ -32,6 +32,9 @@ export default async function JumeauPage({ params }: { params: Promise<{ locale:
             <a href="/twin/thermal-flux.html" target="_blank" rel="noopener" className="px-4 py-2 rounded-lg border border-slate-700 text-slate-200">
               Variante flux HVAC
             </a>
+            <a href={`/${locale}/topologie/thermique`} className="px-4 py-2 rounded-lg border border-cyan-700 text-cyan-300">
+              Console thermique interactive
+            </a>
             <a href={`/${locale}/topologie`} className="px-4 py-2 rounded-lg border border-slate-700 text-slate-200">
               Topologie racks
             </a>

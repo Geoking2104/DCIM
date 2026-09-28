@@ -13,7 +13,7 @@ Bilingual (FR/EN) Next.js 16 product and operations UI for Qinode DCIM.
 | Découverte réseau | `/[locale]/outils/decouverte` |
 | Puissance live | `/[locale]/power` |
 | EED / label A–G (preview) | `/[locale]/eed` |
-| Jumeau thermique 3D / flux HVAC | `/[locale]/topologie/thermique` |
+| Jumeau 3D (démo laya + console interactive) | `/[locale]/jumeau` · `/[locale]/topologie/thermique` |
 | Supervision + inbox Grafana | `/[locale]/supervision` |
 | Graphe / racks / journal | `/[locale]/graphe-reseau` `topologie` `journal-brassage` |
 

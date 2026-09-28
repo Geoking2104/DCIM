@@ -315,7 +315,11 @@ export default function ThermalOperations({ locale }: { locale: string }) {
               <strong className="truncate text-[13px] tracking-wide text-slate-100">Qinode.eu DCIM</strong>
               <span className="hidden rounded-full border border-cyan-800/70 bg-cyan-950/80 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-cyan-300 sm:block">3D thermal · scenario twin</span>
             </div>
-            <p className="truncate text-[10px] text-slate-500">Thermal simulation, HVAC flux and workload planning</p>
+            <p className="truncate text-[10px] text-slate-500">
+              Thermal simulation, HVAC flux and workload planning —{' '}
+              <a href={`/${locale}/jumeau`} className="text-slate-400 underline">jumeau 3D</a>{' · '}
+              <a href="/twin/thermal-hvac.html" target="_blank" rel="noopener" className="text-slate-400 underline">moteur plein écran laya-onnx</a>
+            </p>
           </div>
         </div>
 

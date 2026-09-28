@@ -19,6 +19,7 @@ export default async function TopologiePage({ params }: { params: Promise<{ loca
         <div className="max-w-[1440px] mx-auto px-6 py-6 text-[11px] text-[#706E6B] flex gap-4">
           <a href={`/${locale}/plateforme`} className="underline">Plateforme</a>
           <a href={`/${locale}/power`} className="underline">Puissance</a>
+          <a href={`/${locale}/topologie/thermique`} className="underline">Thermique 3D</a>
           <a href={`/${locale}/outils/decouverte`} className="underline">Découverte</a>
         </div>
       </footer>

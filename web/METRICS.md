@@ -11,9 +11,12 @@ Barre commune : `components/metrics/MetricsLinks.tsx`
 | ERF | `/[locale]/outils/erf` |
 | Puissance live | `/[locale]/power` |
 | Jumeau 3D thermique HVAC | `/[locale]/jumeau` |
+| Console thermique interactive | `/[locale]/topologie/thermique` |
 | Moteur WebGL plein écran | `/twin/thermal-hvac.html` |
 | Variante flux HVAC | `/twin/thermal-flux.html` |
 | Dossier EED | `/[locale]/eed` → `/[locale]/modules/conformite-eed` |
+
+Le thème thermique se décline en deux vues complémentaires : le **jumeau plein écran** (`/jumeau`, moteur laya-onnx) pour la démonstration, et la **console interactive** (`/topologie/thermique`, React/Three.js) pour l'exploration opérationnelle (couches air/eau, charges rack, incidents simulés). Les deux restent marquées « démo » tant qu'elles ne sont pas branchées sur la télémétrie réelle.
 
 ## APIs
 

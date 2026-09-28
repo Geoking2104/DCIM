@@ -9,7 +9,7 @@ use axum::{
 };
 use qinode_auth::Keycloak;
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
-use qinode_graph::{schema as graph_schema, AppSchema};
+use qinode_graph::{schema_from_env as graph_schema_from_env, AppSchema};
 use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
 use qinode_timeseries::{ClickHouse, PowerSample};
 use serde::Serialize;
@@ -32,6 +32,7 @@ struct Health {
     graphql: bool,
     graphql_ws: bool,
     keycloak: bool,
+    topology_store: &'static str,
     nest_graphql: String,
 }
 
@@ -43,7 +44,9 @@ async fn main() {
 
     let ch = ClickHouse::from_env();
     let _ = ch.ensure_schema().await;
-    let gql = graph_schema();
+    let gql = graph_schema_from_env()
+        .await
+        .expect("initialisation du stockage topologique Neo4j");
     let kc = Arc::new(Keycloak::from_env());
 
     let state = AppState {
@@ -107,6 +110,7 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
         graphql: true,
         graphql_ws: true,
         keycloak: state.kc.required(),
+        topology_store: "neo4j",
         nest_graphql: state.nest_graphql,
     })
 }

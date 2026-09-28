@@ -10,6 +10,9 @@ Barre commune : `components/metrics/MetricsLinks.tsx`
 | CUE | `/[locale]/outils/cue` |
 | ERF | `/[locale]/outils/erf` |
 | Puissance live | `/[locale]/power` |
+| Jumeau 3D thermique HVAC | `/[locale]/jumeau` |
+| Moteur WebGL plein écran | `/twin/thermal-hvac.html` |
+| Variante flux HVAC | `/twin/thermal-flux.html` |
 | Dossier EED | `/[locale]/eed` → `/[locale]/modules/conformite-eed` |
 
 ## APIs

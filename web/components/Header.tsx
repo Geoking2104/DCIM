@@ -22,6 +22,7 @@ export default function Header(){
           </a>
           <nav className="hidden lg:flex gap-1 text-[13px] font-medium">
             <a href={`/${locale}/plateforme`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('platform')}</a>
+            <a href={`/${locale}/jumeau`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('twin')}</a>
             <a href={`/${locale}/topologie`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Racks</a>
             <a href={`/${locale}/metriques`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Métriques</a>
             <a href={`/${locale}/metriques/tendances`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Tendances</a>

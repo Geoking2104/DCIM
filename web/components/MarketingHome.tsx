@@ -40,6 +40,7 @@ export default function MarketingHome({ locale }: { locale: string }) {
           <a href={app} className="font-semibold tracking-[0.14em] text-[13px]">QINODE<span className="text-[#C8FF2E]">.EU</span></a>
           <nav className="hidden md:flex gap-5 font-mono text-[11px] text-[#8A8F98]">
             <a href={`/${locale}/plateforme`} className="hover:text-[#C8FF2E]">Plateforme</a>
+            <a href={`/${locale}/jumeau`} className="hover:text-[#C8FF2E]">Jumeau 3D</a>
             <a href={`/${locale}/eed`} className="hover:text-[#C8FF2E]">Dossier EED</a>
             <a href={`/${locale}/metriques`} className="hover:text-[#C8FF2E]">Métriques</a>
             <a href={`/${locale}/power`} className="hover:text-[#C8FF2E]">Puissance</a>
@@ -56,10 +57,11 @@ export default function MarketingHome({ locale }: { locale: string }) {
             Votre datacenter<br />sous contrôle. Enfin.
           </h1>
           <p className="mt-4 max-w-[60ch] font-mono text-[13px] text-[#8A8F98] leading-[1.6]">
-            Inventaire, puissance, climat, jumeau, preuve EED. Snapshot immuable — pas un tableur d’allée.
+            Inventaire, puissance, climat, jumeau 3D thermique, preuve EED. Snapshot immuable — pas un tableur d’allée.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href={`/${locale}/eed`} className="bg-[#C8FF2E] text-black px-5 py-[10px] font-mono text-[12px] font-semibold">Dossier EED →</a>
+            <a href={`/${locale}/jumeau`} className="bg-[#C8FF2E] text-black px-5 py-[10px] font-mono text-[12px] font-semibold">Jumeau 3D HVAC →</a>
+            <a href={`/${locale}/eed`} className="border border-[#232A33] px-5 py-[10px] font-mono text-[12px] hover:border-[#C8FF2E]">Dossier EED</a>
             <a href={`/${locale}/plateforme`} className="border border-[#232A33] px-5 py-[10px] font-mono text-[12px] hover:border-[#C8FF2E]">Plateforme</a>
           </div>
         </section>
@@ -80,14 +82,14 @@ export default function MarketingHome({ locale }: { locale: string }) {
               <div className="flex justify-between border-b border-[#232A33] py-2"><span className="text-[#8A8F98]">Seuil IT UE</span><span>500 kW</span></div>
               <div className="flex justify-between border-b border-[#232A33] py-2"><span className="text-[#8A8F98]">Dépôt annuel</span><span className="text-[#C8FF2E]">15 mai</span></div>
               <div className="flex justify-between border-b border-[#232A33] py-2"><span className="text-[#8A8F98]">Référence CA</span><a className="underline" href={LINKS.ca} target="_blank" rel="noopener">ca-eed.eu</a></div>
-              <div className="flex justify-between border-b border-[#232A33] py-2"><span className="text-[#8A8F98]">Art. 26 chaleur</span><span>&gt;1 MW sauf ACB</span></div>
+              <div className="flex justify-between border-b border-[#232A33] py-2"><span className="text-[#8A8F98]">Art. 26 chaleur</span><span>>1 MW sauf ACB</span></div>
               <div className="flex justify-between py-2"><span className="text-[#8A8F98]">Annexes</span><span>I · II · III</span></div>
             </div>
           </div>
           <div className="bg-[#0F1012] p-6">
-            <div className="font-mono text-[11px] tracking-[0.12em] mb-4">ART. 26 — CHALEUR &gt;1 MW</div>
-            <p className="font-mono text-[11px] text-[#8A8F98] leading-[1.6]">Obligation de valoriser la chaleur fatale, sauf analyse coûts-avantages négative. Qinode prépare l’ACB (offtakers, distance, CAPEX, gain ERF) — ce n’est pas le dépôt officiel.</p>
-            <a href={`/${locale}/eed`} className="inline-block mt-4 font-mono text-[11px] text-[#C8FF2E]">Ouvrir le module EED →</a>
+            <div className="font-mono text-[11px] tracking-[0.12em] mb-4">JUMEAU 3D — HVAC + IA</div>
+            <p className="font-mono text-[11px] text-[#8A8F98] leading-[1.6]">Moteur WebGL : allées froides/chaudes, boucle hydronique, heatmap, hotspots et assistant laya-onnx. Prototype démo, pas encore branché sur la télémétrie ClickHouse.</p>
+            <a href={`/${locale}/jumeau`} className="inline-block mt-4 font-mono text-[11px] text-[#C8FF2E]">Ouvrir le jumeau thermique →</a>
           </div>
         </section>
 
@@ -131,6 +133,7 @@ export default function MarketingHome({ locale }: { locale: string }) {
         <section className="border border-[#C8FF2E] bg-[#C8FF2E] text-black p-4 flex flex-wrap items-center justify-between gap-3">
           <div className="font-mono text-[12px] font-semibold">QINODE DCIM — preuve versionnée, pas un tableur.</div>
           <div className="flex gap-2">
+            <a href={`/${locale}/jumeau`} className="font-mono text-[11px] px-4 py-2 border border-black hover:bg-black hover:text-[#C8FF2E]">Jumeau 3D</a>
             <a href={`/${locale}/eed`} className="font-mono text-[11px] px-4 py-2 border border-black hover:bg-black hover:text-[#C8FF2E]">Reporting EED</a>
             <a href="https://github.com/Geoking2104/DCIM" target="_blank" rel="noopener" className="font-mono text-[11px] px-4 py-2 bg-black text-[#C8FF2E]">GitHub</a>
           </div>

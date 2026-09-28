@@ -8,6 +8,6 @@
 [extend]
 useDefault = true
 
-[[allowlists]]
+[allowlist]
 description = "Clés RSA de test locales (qinode-auth tests)"
 paths = ['crates/qinode-auth/tests/fixtures/']

@@ -3,7 +3,10 @@
 ```bash
 cd crates
 cargo test -p qinode-core
-cargo run -p qinode-gateway
+NEO4J_URI=bolt://localhost:7687 \
+NEO4J_USER=neo4j \
+NEO4J_PASSWORD=change-me \
+  cargo run -p qinode-gateway
 # autre terminal
 curl -s localhost:8088/health
 curl -s -X POST localhost:8088/v1/metrics/pue \
@@ -11,6 +14,6 @@ curl -s -X POST localhost:8088/v1/metrics/pue \
   -d '{"facility_kwh":130,"it_kwh":100}'
 ```
 
-Docker : `docker compose up --build qinode-gateway`
+Docker : `docker compose up --build graph-db qinode-gateway`
 
-Le front Next appelle `/api/metrics/pue|wue` qui parle au sidecar (`RUST_GATEWAY_URL`). Si le sidecar est éteint, le même calcul tourne en TypeScript.
+Le gateway crée les contraintes d'unicité `Rack.id` et `Device.id` au démarrage et refuse de démarrer si Neo4j est absent ou mal configuré. Le front Next appelle `/api/metrics/pue|wue` via `RUST_GATEWAY_URL`; le calcul TypeScript local n'est utilisé qu'en mode démonstration explicite.

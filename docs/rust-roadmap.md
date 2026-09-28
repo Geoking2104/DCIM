@@ -1,6 +1,6 @@
 # Qinode — Rust d’abord, bascule progressive
 
-Le front Next.js (`web/`) reste. Le cœur métier bascule vers Rust. Nest (`dcim-topology-service`) reste le GraphQL racks **jusqu’au palier C**.
+Le front Next.js (`web/`) reste. Le cœur métier bascule vers Rust. Nest (`dcim-topology-service`) reste disponible en parallèle pendant la validation du palier C.
 
 ## Cible
 
@@ -34,10 +34,11 @@ Capteurs → qinode-ingest (Rust) → ClickHouse + graphe
 - Critère : `/fr/power` lit les deux écrivains sans casser
 
 ### C — Topologie
-- `async-graphql` + Neo4j (`neo4rs`)
+- `async-graphql` + Neo4j (`neo4rs`) — persistance rack/device livrée
 - JWKS Keycloak déjà documenté (`aud=qinode-graphql`)
 - Proxy Next `/api/graphql` bascule d’URL
-- Nest en lecture seule 30 jours puis arrêt
+- Test d'intégration CI : rack et device relus après reconstruction du schéma GraphQL
+- Prochain critère : isolation tenant, puis Nest en lecture seule 30 jours avant arrêt
 
 ### D — Bord salle
 - Collecteur Rust (Modbus / Redfish), pas de Node en salle

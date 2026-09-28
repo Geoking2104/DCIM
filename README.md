@@ -63,7 +63,7 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 | **P1** | **In progress** | Durable operational data path | Explicit demo mode, fail-visible sources, and Neo4j-backed Rust topology are implemented; validate ClickHouse retention/replay and complete Redfish, SNMP, BACnet, and Modbus ingestion |
 | **P1** | **Next** | Identity and tenant isolation | Complete Keycloak/JWKS integration and enforce RBAC/ABAC and tenant boundaries across HTTP, GraphQL, WebSockets, exports, caches, logs, and AI retrieval, with negative tests |
 | **P1** | **Next** | Regulatory evidence engine | Ship effective-dated PUE/WUE/ERF rules, data-quality gates, tenant allocation, locked evidence snapshots, four-eyes review, EU/national exports, submission receipts, and official-label reconciliation |
-| **P2** | **Later** | Production operations | Add migrations, TLS and managed secrets, health/readiness probes, SLOs, tracing, backup/restore tests, retention policies, HA deployment manifests, and disaster-recovery runbooks |
+| **P2** | **In progress** | Production operations | Liveness/readiness probes, hardened containers, an HA gateway manifest, initial SLOs, and backup/restore policy are implemented; migrations, TLS automation, tracing, proven restores, retention, and full DR exercises remain |
 | **P2** | **Later** | Advanced product capabilities | Connect the WebGL digital twin to live topology and telemetry, complete CDU/liquid-cooling and heat-reuse workflows, then validate predictive AIOps and the air-gapped copilot with human controls |
 
 The next milestone is **P1: durable operational data and tenant isolation**. Requirements and acceptance criteria are maintained in the [Functional Requirements](docs/functional-requirements.md); the Rust migration sequence is described in the [Rust roadmap](docs/rust-roadmap.md).
@@ -129,6 +129,7 @@ Telegraf (SNMP/Redfish) → ClickHouse. Grafana alerting → webhook `POST /api/
 - [Operations Web UI](web/README.md)
 - [Metrics map](web/METRICS.md)
 - [Monitoring overlay](ops/MONITORING.md)
+- [Production operations readiness](docs/operations-readiness.md)
 - [Topology Service](dcim-topology-service/README.md)
 - [Multi-pod WebSocket Deployment](dcim-topology-service/deploy/README.md)
 

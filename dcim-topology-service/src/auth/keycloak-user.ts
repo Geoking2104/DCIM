@@ -25,3 +25,14 @@ export function rolesFromPayload(payload: Record<string, unknown>): string[] {
   const client = resource?.[clientId]?.roles || resource?.['qinode-graphql']?.roles || [];
   return [...new Set([...realm, ...client].map(String).filter((r) => r.startsWith('qinode-')))];
 }
+
+/**
+ * Périmètre tenant, fail-closed : hors admin, l'utilisateur doit lister
+ * explicitement le tenant demandé (claim `tenants` ou groupes `/tenants/<id>`).
+ * Un utilisateur sans tenant n'accède donc à aucun tenant — c'est le durcissement P1.
+ */
+export function tenantAllowed(user: KeycloakUser | undefined, tenant: string): boolean {
+  if (!user) return false;
+  if (user.roles.includes('qinode-admin')) return true;
+  return user.tenants.includes(tenant);
+}

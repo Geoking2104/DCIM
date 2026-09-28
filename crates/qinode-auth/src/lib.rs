@@ -14,6 +14,8 @@ pub enum AuthError {
     Audience(String),
     #[error("jwks: {0}")]
     Jwks(String),
+    #[error("configuration: {0}")]
+    Configuration(String),
 }
 
 #[derive(Clone)]
@@ -48,6 +50,21 @@ impl Keycloak {
 
     pub fn required(&self) -> bool {
         !self.optional && !self.issuer.is_empty()
+    }
+
+    pub fn ready(&self) -> Result<(), AuthError> {
+        if self.optional {
+            return Ok(());
+        }
+        if self.issuer.is_empty() {
+            return Err(AuthError::Configuration(
+                "KEYCLOAK_ISSUER requis lorsque KEYCLOAK_OPTIONAL n'est pas true".into(),
+            ));
+        }
+        if self.jwks_uri.is_empty() {
+            return Err(AuthError::Configuration("KEYCLOAK_JWKS_URI vide".into()));
+        }
+        Ok(())
     }
 
     pub async fn verify_bearer(
@@ -117,5 +134,32 @@ impl Keycloak {
             jwk.e.as_deref().unwrap_or("AQAB"),
         )
         .map_err(|e| AuthError::Jwks(e.to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn required_auth_rejects_missing_issuer() {
+        let keycloak = Keycloak {
+            issuer: String::new(),
+            audience: "qinode-graphql".into(),
+            jwks_uri: String::new(),
+            optional: false,
+        };
+        assert!(matches!(keycloak.ready(), Err(AuthError::Configuration(_))));
+    }
+
+    #[test]
+    fn explicitly_optional_auth_is_ready_for_local_development() {
+        let keycloak = Keycloak {
+            issuer: String::new(),
+            audience: "qinode-graphql".into(),
+            jwks_uri: String::new(),
+            optional: true,
+        };
+        assert!(keycloak.ready().is_ok());
     }
 }

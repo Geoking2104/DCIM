@@ -9,7 +9,7 @@ use axum::{
 };
 use qinode_auth::Keycloak;
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
-use qinode_graph::{schema_from_env as graph_schema_from_env, AppSchema};
+use qinode_graph::{schema as graph_schema, AppSchema, Neo4jStore};
 use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
 use qinode_timeseries::{ClickHouse, PowerSample};
 use serde::Serialize;
@@ -19,21 +19,34 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 #[derive(Clone)]
 struct AppState {
-    nest_graphql: String,
     ch: Arc<ClickHouse>,
     gql: AppSchema,
     kc: Arc<Keycloak>,
+    topology: Neo4jStore,
 }
 
 #[derive(Serialize)]
 struct Health {
+    status: &'static str,
     service: &'static str,
     rust: bool,
     graphql: bool,
     graphql_ws: bool,
     keycloak: bool,
     topology_store: &'static str,
-    nest_graphql: String,
+}
+
+#[derive(Serialize)]
+struct Dependencies {
+    clickhouse: &'static str,
+    keycloak: &'static str,
+    neo4j: &'static str,
+}
+
+#[derive(Serialize)]
+struct Readiness {
+    status: &'static str,
+    dependencies: Dependencies,
 }
 
 #[tokio::main]
@@ -43,22 +56,26 @@ async fn main() {
         .init();
 
     let ch = ClickHouse::from_env();
-    let _ = ch.ensure_schema().await;
-    let gql = graph_schema_from_env()
+    if let Err(error) = ch.ensure_schema().await {
+        tracing::warn!(%error, "ClickHouse indisponible au démarrage");
+    }
+    let topology = Neo4jStore::connect_from_env()
         .await
         .expect("initialisation du stockage topologique Neo4j");
+    let gql = graph_schema(topology.clone());
     let kc = Arc::new(Keycloak::from_env());
 
     let state = AppState {
-        nest_graphql: std::env::var("NEST_GRAPHQL_URL")
-            .unwrap_or_else(|_| "http://127.0.0.1:4000/graphql".into()),
         ch: Arc::new(ch),
         gql: gql.clone(),
         kc: kc.clone(),
+        topology,
     };
 
     let app = Router::new()
-        .route("/health", get(health))
+        .route("/health", get(live))
+        .route("/health/live", get(live))
+        .route("/health/ready", get(ready))
         .route("/graphql", post(graphql_handler))
         .route("/graphql/ws", get(graphql_ws_handler))
         .route("/v1/metrics/pue", post(calc_pue))
@@ -103,16 +120,59 @@ async fn graphql_ws_handler(
         })
 }
 
-async fn health(State(state): State<AppState>) -> Json<Health> {
+async fn live(State(state): State<AppState>) -> Json<Health> {
     Json(Health {
+        status: "ok",
         service: "qinode-gateway",
         rust: true,
         graphql: true,
         graphql_ws: true,
         keycloak: state.kc.required(),
         topology_store: "neo4j",
-        nest_graphql: state.nest_graphql,
     })
+}
+
+async fn ready(State(state): State<AppState>) -> (StatusCode, Json<Readiness>) {
+    let (clickhouse, neo4j) = tokio::join!(state.ch.ready(), state.topology.ready());
+    let keycloak = state.kc.ready();
+    let clickhouse_ready = clickhouse.is_ok();
+    let keycloak_ready = keycloak.is_ok();
+    let neo4j_ready = neo4j.is_ok();
+
+    if let Err(error) = clickhouse {
+        tracing::warn!(%error, "Échec du probe ClickHouse");
+    }
+    if let Err(error) = neo4j {
+        tracing::warn!(%error, "Échec du probe Neo4j");
+    }
+    if let Err(error) = keycloak {
+        tracing::warn!(%error, "Configuration Keycloak non prête");
+    }
+
+    let ready = clickhouse_ready && keycloak_ready && neo4j_ready;
+    (
+        if ready {
+            StatusCode::OK
+        } else {
+            StatusCode::SERVICE_UNAVAILABLE
+        },
+        Json(Readiness {
+            status: if ready { "ready" } else { "unavailable" },
+            dependencies: Dependencies {
+                clickhouse: if clickhouse_ready {
+                    "ready"
+                } else {
+                    "unavailable"
+                },
+                keycloak: if keycloak_ready {
+                    "ready"
+                } else {
+                    "unavailable"
+                },
+                neo4j: if neo4j_ready { "ready" } else { "unavailable" },
+            },
+        }),
+    )
 }
 
 async fn graphql_handler(

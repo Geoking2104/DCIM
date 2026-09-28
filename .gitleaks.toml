@@ -1,0 +1,13 @@
+# Configuration gitleaks — étend la configuration par défaut.
+#
+# Seule exception : les clés RSA locales de la suite de tests négatifs
+# d'authentification (`crates/qinode-auth/tests/fixtures/`). Ce sont des clés
+# de test générées localement, sans usage de production ; aucun secret réel
+# n'est autorisé par cette liste.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Clés RSA de test locales (qinode-auth tests)"
+paths = ['crates/qinode-auth/tests/fixtures/']

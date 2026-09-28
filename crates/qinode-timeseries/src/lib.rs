@@ -59,6 +59,10 @@ impl ClickHouse {
         Ok(())
     }
 
+    pub async fn ready(&self) -> Result<(), TsError> {
+        self.exec("SELECT 1").await.map(|_| ())
+    }
+
     pub async fn insert_power(&self, row: &PowerSample) -> Result<(), TsError> {
         let sql = format!(
             "INSERT INTO {}.power_metrics (rack_id, grid_power_kw, ups_power_kw, pdu_power_kw, rack_power_kw, battery_cell_temp, voltage) VALUES ('{}', {}, {}, {}, {}, {}, {})",

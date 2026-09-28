@@ -63,6 +63,10 @@ impl Neo4jStore {
             .await
     }
 
+    pub async fn ready(&self) -> Result<(), String> {
+        self.run("RETURN 1").await
+    }
+
     async fn run(&self, cypher: &str) -> Result<(), String> {
         self.graph.run(query(cypher)).await.map_err(neo4j_error)
     }
@@ -555,12 +559,16 @@ impl SubscriptionRoot {
 
 pub type AppSchema = Schema<QueryRoot, MutationRoot, SubscriptionRoot>;
 
-pub async fn schema_from_env() -> Result<AppSchema, String> {
-    let store = Neo4jStore::connect_from_env().await?;
-    Ok(Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
+pub fn schema(store: Neo4jStore) -> AppSchema {
+    Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
         .data(store)
         .data(Bus::new())
-        .finish())
+        .finish()
+}
+
+pub async fn schema_from_env() -> Result<AppSchema, String> {
+    let store = Neo4jStore::connect_from_env().await?;
+    Ok(schema(store))
 }
 
 #[cfg(test)]

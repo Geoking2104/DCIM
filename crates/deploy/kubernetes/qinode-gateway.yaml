@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qinode-gateway-config
+data:
+  LISTEN: 0.0.0.0:8088
+  NEO4J_URI: bolt://graph-db:7687
+  NEO4J_USER: neo4j
+  CLICKHOUSE_URL: http://timeseries-db:8123
+  CLICKHOUSE_DB: dcim
+  KEYCLOAK_ISSUER: https://keycloak.example.com/realms/qinode
+  KEYCLOAK_AUDIENCE: qinode-graphql
+  KEYCLOAK_OPTIONAL: "false"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qinode-gateway
+  labels:
+    app.kubernetes.io/name: qinode-gateway
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qinode-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: qinode-gateway
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: qinode-gateway:0.1.0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: qinode-gateway-config
+          env:
+            - name: NEO4J_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: qinode-gateway-secrets
+                  key: neo4j-password
+          ports:
+            - containerPort: 8088
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: qinode-gateway
+          maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qinode-gateway
+spec:
+  selector:
+    app.kubernetes.io/name: qinode-gateway
+  ports:
+    - name: http
+      port: 8088
+      targetPort: http
+  type: ClusterIP
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: qinode-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: qinode-gateway

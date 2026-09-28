@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Qinode DCIM — 3D Thermal HVAC + laya-onnx</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+body{font-family:Inter,sans-serif;background:#030712;color:#f3f4f6;overflow:hidden}
+.font-mono{font-family:'JetBrains Mono',monospace}
+.glass{background:rgba(11,15,25,.88);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08)}
+.glow-cyan{box-shadow:0 0 20px rgba(6,182,212,.3)}
+.glow-em{box-shadow:0 0 20px rgba(16,185,129,.35)}
+@keyframes pulse-fast{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse-fast{animation:pulse-fast 1s infinite}
+</style>
+</head>
+<body class="h-screen w-screen flex flex-col select-none">
+<header class="h-14 bg-slate-950/95 border-b border-slate-800 px-4 flex items-center justify-between z-20 shrink-0">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 via-emerald-600 to-indigo-600 grid place-items-center font-bold">Q</div>
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-sm">Qinode.eu DCIM</span>
+        <span class="px-2 py-0.5 text-[10px] uppercase bg-cyan-950 text-cyan-400 border border-cyan-800 rounded-full">3D Thermal & HVAC AI</span>
+      </div>
+      <p class="text-[11px] text-slate-400">laya-onnx · flux HVAC · heatmap volumique</p>
+    </div>
+  </div>
+  <div class="hidden xl:flex items-center gap-3 text-xs">
+    <div class="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800"><div class="text-[10px] text-slate-400">PUE / WUE</div><div id="kpi-pue" class="font-mono font-bold text-cyan-300">1.08 / 0.21</div></div>
+    <div class="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800"><div class="text-[10px] text-slate-400">EAU IN / OUT</div><div id="kpi-water" class="font-mono font-bold text-blue-400">7.2°C / 13.8°C</div></div>
+    <div class="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800"><div class="text-[10px] text-slate-400">MAX EXHAUST</div><div id="kpi-maxtemp" class="font-mono font-bold text-amber-400">28.5 °C</div></div>
+    <div class="bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800"><div class="text-[10px] text-slate-400">laya-onnx</div><div id="kpi-onnx-speed" class="font-mono font-bold text-emerald-400">14.2 ms</div></div>
+  </div>
+  <div class="flex gap-2">
+    <button id="btn-audio-toggle" class="px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg">Audio On</button>
+    <button id="btn-reset-view" class="px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg">Reset View</button>
+  </div>
+</header>
+<div class="relative flex-1 overflow-hidden">
+  <div id="canvas-container" class="absolute inset-0 cursor-grab"></div>
+  <div class="absolute top-4 left-4 z-10 w-80 glass rounded-xl p-4 space-y-3 max-h-[calc(100vh-80px)] overflow-y-auto">
+    <div class="flex justify-between text-xs font-bold uppercase tracking-wider border-b border-slate-800 pb-2">HVAC & Thermal <span class="text-cyan-400 font-mono">LIVE</span></div>
+    <label class="flex justify-between text-xs">Air froid <input id="toggle-cold-air" type="checkbox" checked></label>
+    <label class="flex justify-between text-xs">Panaches chauds <input id="toggle-hot-air" type="checkbox" checked></label>
+    <label class="flex justify-between text-xs">Boucle d’eau glacée <input id="toggle-water-pipes" type="checkbox" checked></label>
+    <label class="flex justify-between text-xs">Dissipation chassis <input id="toggle-dissipation" type="checkbox" checked></label>
+    <label class="flex justify-between text-xs">Heatmap 3D <input id="toggle-heatmap" type="checkbox" checked></label>
+    <div class="pt-2 border-t border-slate-800 space-y-2 text-xs text-slate-400">
+      <div class="flex justify-between">Vitesse <span id="speed-val" class="font-mono text-cyan-400">1.0x</span></div>
+      <input id="slider-speed" type="range" min="2" max="30" value="10" class="w-full accent-cyan-500">
+      <div class="flex justify-between">Densité <span id="density-val" class="font-mono text-cyan-400">100%</span></div>
+      <input id="slider-density" type="range" min="20" max="100" value="100" class="w-full accent-cyan-500">
+      <div class="flex justify-between">Opacité heatmap <span id="heatmap-opacity-val" class="font-mono text-cyan-400">70%</span></div>
+      <input id="slider-opacity" type="range" min="0" max="100" value="70" class="w-full accent-cyan-500">
+    </div>
+    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+      <button id="btn-stress-test" class="py-2 text-xs bg-red-950/60 border border-red-800 text-red-300 rounded-lg">Inject Hotspot</button>
+      <button id="btn-cool-boost" class="py-2 text-xs bg-cyan-950/60 border border-cyan-800 text-cyan-300 rounded-lg">CRAH Boost</button>
+    </div>
+    <button id="btn-random-load" class="w-full py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg">Randomize Load</button>
+  </div>
+  <div class="absolute top-4 right-4 z-10 w-96 glass rounded-xl p-4 space-y-4 max-h-[calc(100vh-80px)] overflow-y-auto">
+    <div class="bg-slate-900/90 rounded-lg border border-cyan-500/30 p-3 space-y-3">
+      <div class="flex items-center gap-2 text-xs font-bold"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span> laya-onnx Decision Assistant</div>
+      <div class="grid grid-cols-3 gap-2 text-center text-[10px] font-mono bg-slate-950/80 p-2 rounded">
+        <div>CONFIDENCE<br><span id="ai-confidence" class="text-emerald-400 font-bold">98.4%</span></div>
+        <div>LATENCY<br><span id="ai-latency" class="text-cyan-400 font-bold">14.2 ms</span></div>
+        <div>POLICY<br><span id="ai-policy" class="text-amber-400 font-bold">BALANCED</span></div>
+      </div>
+      <p id="ai-advice-text" class="text-xs text-slate-200 leading-relaxed">Système nominal. Delta-T allée froide / chaude équilibré.</p>
+      <button id="btn-apply-ai" class="w-full py-2 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white font-bold text-xs rounded-lg glow-em">Execute laya-onnx Optimization</button>
+    </div>
+    <div>
+      <div class="flex justify-between text-xs font-bold uppercase border-b border-slate-800 pb-2 mb-2">Incidents <span id="alert-count-badge" class="px-2 py-0.5 bg-slate-800 rounded-full">0 ACTIVE</span></div>
+      <div id="alert-stream-list" class="space-y-2 text-xs text-slate-400">Aucun incident thermique.</div>
+    </div>
+  </div>
+  <div id="rack-inspector" class="absolute bottom-16 right-4 z-10 w-80 glass rounded-xl p-4 opacity-0 pointer-events-none translate-x-[400px] transition-all">
+    <div class="flex justify-between border-b border-slate-800 pb-2">
+      <h3 id="inspector-title" class="text-sm font-bold">RACK</h3>
+      <button id="btn-close-inspector" class="text-slate-400">×</button>
+    </div>
+    <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+      <div class="bg-slate-900 p-2 rounded border border-slate-800">INTAKE<br><span id="rack-intake" class="font-mono text-cyan-400">19.4 °C</span></div>
+      <div class="bg-slate-900 p-2 rounded border border-slate-800">EXHAUST<br><span id="rack-exhaust" class="font-mono text-amber-400">32.1 °C</span></div>
+    </div>
+    <div class="mt-2 text-xs">Power <span id="rack-power-text">8.8 kW / 12 kW</span>
+      <div class="bg-slate-800 h-1.5 rounded mt-1"><div id="rack-power-bar" class="bg-cyan-500 h-full" style="width:73%"></div></div>
+    </div>
+    <div class="mt-2 text-xs flex justify-between">Charge <span id="slider-load-val" class="font-mono text-cyan-400">73%</span></div>
+    <input id="slider-rack-load" type="range" min="10" max="100" value="73" class="w-full accent-cyan-500">
+    <button id="btn-ai-balance-rack" class="mt-2 w-full py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg text-cyan-300">Rebalance via laya-onnx</button>
+  </div>
+  <div id="tooltip" class="absolute z-30 bg-slate-950/95 text-xs px-2.5 py-1.5 rounded border border-slate-700 opacity-0 pointer-events-none"><div id="tooltip-title" class="font-bold"></div><div id="tooltip-body" class="text-[10px] text-slate-400"></div></div>
+</div>
+<script>
+lucide.createIcons();
+const ROOM={width:18,length:24,height:4.8}, RACKS_PER_ROW=6;
+let racksData=[], selectedRack=null, heatmapMesh, heatmapMaterial;
+let showColdAir=true,showHotAir=true,showWaterPipes=true,showDissipation=true,showHeatmap=true;
+let flowSpeed=1, density=1, heatmapOpacity=0.7, crahBoost=false, audioOn=true, activeAlarms=[];
+let coldAir, hotAir, waterP, dispP, scene, camera, renderer, controls, raycaster, mouse;
+let rackMeshes=[], crahUnits=[], audioCtx=null;
+function beep(crit){if(!audioOn)return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=crit?'sawtooth':'sine';o.frequency.value=crit?880:587;g.gain.value=0.04;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.25);}catch(e){}}
+window.onload=()=>{init();buildRoom();buildPipes();initHeatmap();initParticles();bind();runAI();animate();};
+function init(){
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x030712);scene.fog=new THREE.FogExp2(0x030712,0.032);
+  camera=new THREE.PerspectiveCamera(45,innerWidth/(innerHeight-56),0.1,100);camera.position.set(16,13,20);
+  renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight-56);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+  controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=Math.PI/2-0.02;controls.target.set(0,1.6,0);
+  raycaster=new THREE.Raycaster();mouse=new THREE.Vector2();
+  scene.add(new THREE.AmbientLight(0x1e293b,1.4));
+  const sun=new THREE.DirectionalLight(0xffffff,1);sun.position.set(12,18,10);scene.add(sun);
+  const glow=new THREE.PointLight(0x0284c7,1.8,25);glow.position.set(0,0.2,0);scene.add(glow);
+  addEventListener('resize',()=>{camera.aspect=innerWidth/(innerHeight-56);camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight-56);});
+}
+function buildRoom(){
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(ROOM.width,ROOM.length),new THREE.MeshStandardMaterial({color:0x0f172a,roughness:.5,metalness:.5}));
+  floor.rotation.x=-Math.PI/2;scene.add(floor);
+  const grid=new THREE.GridHelper(ROOM.length,24,0x334155,0x1e293b);grid.position.y=0.01;scene.add(grid);
+  const perf=new THREE.Mesh(new THREE.PlaneGeometry(2.6,ROOM.length-6),new THREE.MeshBasicMaterial({color:0x06b6d4,transparent:true,opacity:.3,wireframe:true}));
+  perf.rotation.x=-Math.PI/2;perf.position.y=0.02;scene.add(perf);
+  const ductMat=new THREE.MeshStandardMaterial({color:0x334155,metalness:.7,roughness:.3});
+  [[-4.5,4.5],[4.5,4.5]].forEach(([x])=>{const d=new THREE.Mesh(new THREE.BoxGeometry(1.8,.8,ROOM.length-4),ductMat);d.position.set(x,ROOM.height-0.5,0);scene.add(d);});
+  [[-ROOM.width/2+1.2,-8,'CRAH-01'],[ROOM.width/2-1.2,-8,'CRAH-02'],[-ROOM.width/2+1.2,8,'CRAH-03'],[ROOM.width/2-1.2,8,'CRAH-04']].forEach(([x,z,name])=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(1.8,3.4,1.6),new THREE.MeshStandardMaterial({color:0x334155,metalness:.6}));
+    m.position.set(x,1.7,z);const g=new THREE.Mesh(new THREE.BoxGeometry(1.4,.2,1.2),new THREE.MeshStandardMaterial({color:0x0284c7,emissive:0x0284c7,emissiveIntensity:.8}));
+    g.position.y=1.7;m.add(g);scene.add(m);crahUnits.push({mesh:m,grillMat:g.material,name});
+  });
+  [-2.4,2.4].forEach((xPos,row)=>{
+    const letter=row===0?'A':'B';
+    for(let i=0;i<RACKS_PER_ROW;i++){
+      const z=-7.5+i*3,id=`RACK-${letter}${i+1}`;
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(1.1,2.4,1.3),new THREE.MeshStandardMaterial({color:0x1e293b,metalness:.8,roughness:.3}));
+      mesh.position.set(xPos,1.2,z);const leds=[];
+      for(let s=0;s<7;s++){const lm=new THREE.MeshStandardMaterial({color:0x0284c7,emissive:0x0284c7,emissiveIntensity:.6});const led=new THREE.Mesh(new THREE.BoxGeometry(.9,.18,.02),lm);led.position.set(0,-.9+s*.3,.67);mesh.add(led);leds.push(lm);}
+      scene.add(mesh);rackMeshes.push(mesh);
+      const load=Math.floor(45+Math.random()*40);
+      racksData.push({id,row:letter,mesh,leds,loadPct:load,intakeTemp:18.5+Math.random()*1.5,exhaustTemp:22+load*0.14,powerKw:(load/100)*12});
+    }
+  });
+}
+function buildPipes(){
+  const mk=(pts,y,col)=>{const c=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],y,p[1])),true);scene.add(new THREE.Mesh(new THREE.TubeGeometry(c,64,.08,12,true),new THREE.MeshStandardMaterial({color:col,metalness:.8})));};
+  const loop=[[-8.2,-10],[-8.2,10],[8.2,10],[8.2,-10]];
+  mk(loop,.2,0x2563eb);mk(loop.map(([x,z])=>[x+.3,z]),.4,0xd97706);
+}
+function initHeatmap(){
+  heatmapMaterial=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,uniforms:{uTime:{value:0},uOpacity:{value:heatmapOpacity},uHotspot0:{value:new THREE.Vector3()},uHotspot1:{value:new THREE.Vector3()},uHotspotIntensity0:{value:0},uHotspotIntensity1:{value:0}},
+    vertexShader:`varying vec2 vUv;varying vec3 vWorldPosition;uniform float uTime;void main(){vUv=uv;vec3 pos=position;pos.z+=sin(pos.x*2.2+uTime*1.8)*0.07;vec4 wp=modelMatrix*vec4(pos,1.0);vWorldPosition=wp.xyz;gl_Position=projectionMatrix*viewMatrix*wp;}`,
+    fragmentShader:`varying vec2 vUv;varying vec3 vWorldPosition;uniform float uOpacity;uniform vec3 uHotspot0;uniform vec3 uHotspot1;uniform float uHotspotIntensity0;uniform float uHotspotIntensity1;vec3 tc(float v){vec3 c=vec3(.01,.5,.95),n=vec3(.05,.8,.4),w=vec3(.95,.65,.1),h=vec3(.9,.15,.15);if(v<.35)return mix(c,n,v/.35);if(v<.7)return mix(n,w,(v-.35)/.35);return mix(w,h,(v-.7)/.3);}void main(){float base=smoothstep(0.,4.2,abs(vWorldPosition.x))*.6;float s0=exp(-distance(vWorldPosition.xz,uHotspot0.xz)*.75)*uHotspotIntensity0;float s1=exp(-distance(vWorldPosition.xz,uHotspot1.xz)*.75)*uHotspotIntensity1;float t=clamp(base+s0+s1,0.,1.);float a=smoothstep(.5,0.,abs(vUv.x-.5))*smoothstep(.5,0.,abs(vUv.y-.5));gl_FragColor=vec4(tc(t),t*uOpacity*a*.85);}`});
+  heatmapMesh=new THREE.Mesh(new THREE.PlaneGeometry(ROOM.width*.85,ROOM.length*.85,32,32),heatmapMaterial);heatmapMesh.rotation.x=-Math.PI/2;heatmapMesh.position.y=1.8;scene.add(heatmapMesh);
+}
+function pts(count,color){const geo=new THREE.BufferGeometry();const pos=new Float32Array(count*3);geo.setAttribute('position',new THREE.BufferAttribute(pos,3));const p=new THREE.Points(geo,new THREE.PointsMaterial({color,size:.14,transparent:true,opacity:.7,blending:THREE.AdditiveBlending}));scene.add(p);return p;}
+function initParticles(){
+  coldAir=pts(350,0x38bdf8);hotAir=pts(350,0xef4444);dispP=pts(250,0xf59e0b);
+  const wgeo=new THREE.BufferGeometry();wgeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(200*3),3));
+  const col=new Float32Array(200*3);for(let i=0;i<200;i++){const c=i%2===0;col[i*3]=c?.2:.9;col[i*3+1]=c?.6:.5;col[i*3+2]=c?1:.1;}wgeo.setAttribute('color',new THREE.BufferAttribute(col,3));wgeo.userData={progress:Float32Array.from({length:200},()=>Math.random())};
+  waterP=new THREE.Points(wgeo,new THREE.PointsMaterial({size:.2,vertexColors:true,transparent:true,opacity:.85,blending:THREE.AdditiveBlending}));scene.add(waterP);
+  const cp=coldAir.geometry.attributes.position.array;for(let i=0;i<350;i++){cp[i*3]=(Math.random()-.5)*2.2;cp[i*3+1]=.1+Math.random()*.3;cp[i*3+2]=(Math.random()-.5)*16;}
+  const hp=hotAir.geometry.attributes.position.array;for(let i=0;i<350;i++){const s=Math.random()>.5?1:-1;hp[i*3]=s*(2.8+Math.random()*1.5);hp[i*3+1]=.5+Math.random()*2;hp[i*3+2]=(Math.random()-.5)*16;}
+}
+function runAI(){
+  const t0=performance.now();activeAlarms=[];let hot=null,crit=0;
+  racksData.forEach(r=>{if(r.exhaustTemp>=35){crit++;if(!hot||r.exhaustTemp>hot.exhaustTemp)hot=r;activeAlarms.push({type:'critical',id:r.id,title:'THERMAL RUNAWAY '+r.id,desc:r.exhaustTemp.toFixed(1)+'°C',mesh:r.mesh});beep(true);}else if(r.loadPct>85)activeAlarms.push({type:'warn',id:r.id,title:'POWER SPIKE '+r.id,desc:r.powerKw.toFixed(1)+' kW',mesh:r.mesh});});
+  const lat=(performance.now()-t0+12+Math.random()*4).toFixed(1);
+  document.getElementById('ai-latency').textContent=lat+' ms';document.getElementById('kpi-onnx-speed').textContent=lat+' ms';
+  document.getElementById('ai-confidence').textContent=(96.5+Math.random()*3.2).toFixed(1)+'%';
+  const pol=document.getElementById('ai-policy'), adv=document.getElementById('ai-advice-text');
+  if(hot){pol.textContent='SHED_LOAD';pol.className='text-red-400 font-bold';adv.innerHTML='Réallouer 3.8 kW depuis <b>'+hot.id+'</b> vers RACK-B1. Vanne CRAH-02 +12%.';}
+  else if(crahBoost){pol.textContent='OPTIMIZE_COP';pol.className='text-cyan-400 font-bold';adv.textContent='Réduire la vitesse CRAH de 8% pour viser PUE 1.06.';}
+  else {pol.textContent='BALANCED';pol.className='text-emerald-400 font-bold';adv.textContent='Système nominal. Delta-T confinement 11.2°C. Aucune anomalie 60 min.';}
+  renderAlarms();recalc();
+}
+function renderAlarms(){
+  const badge=document.getElementById('alert-count-badge'), list=document.getElementById('alert-stream-list');
+  badge.textContent=activeAlarms.length+' ACTIVE';badge.className=activeAlarms.length?'px-2 py-0.5 bg-red-950 text-red-300 rounded-full pulse-fast':'px-2 py-0.5 bg-slate-800 rounded-full';
+  if(!activeAlarms.length){list.innerHTML='Aucun incident thermique.';return;}
+  list.innerHTML='';activeAlarms.forEach(a=>{const d=document.createElement('div');d.className='p-2 rounded border text-xs cursor-pointer '+(a.type==='critical'?'bg-red-950/60 border-red-800 text-red-200':'bg-amber-950/60 border-amber-800 text-amber-200');d.innerHTML='<b>'+a.title+'</b><div class="text-[10px] opacity-80">'+a.desc+'</div>';d.onclick=()=>focus(a.mesh);list.appendChild(d);});
+}
+function focus(mesh){const end=mesh.position.clone().add(new THREE.Vector3(3.5,2.5,4.5));const start=camera.position.clone();const tgt=mesh.position.clone();let t0=performance.now();(function step(now){let e=Math.min(1,(now-t0)/600);camera.position.lerpVectors(start,end,e);controls.target.lerp(tgt,e);controls.update();if(e<1)requestAnimationFrame(step);})(t0);const r=racksData.find(x=>x.mesh===mesh);if(r)select(r);}
+function recalc(){
+  let maxT=0,pwr=0,hots=[];
+  racksData.forEach(r=>{maxT=Math.max(maxT,r.exhaustTemp);pwr+=r.powerKw;if(r.exhaustTemp>=35)hots.push(r);const c=r.exhaustTemp>=35?0xef4444:r.exhaustTemp>29?0xf59e0b:0x0284c7;r.leds.forEach(m=>{m.color.setHex(c);m.emissive.setHex(c);});});
+  if(heatmapMaterial){heatmapMaterial.uniforms.uHotspotIntensity0.value=hots[0]?0.95:0;if(hots[0])heatmapMaterial.uniforms.uHotspot0.value.copy(hots[0].mesh.position);heatmapMaterial.uniforms.uHotspotIntensity1.value=hots[1]?0.95:0;if(hots[1])heatmapMaterial.uniforms.uHotspot1.value.copy(hots[1].mesh.position);}
+  document.getElementById('kpi-maxtemp').textContent=maxT.toFixed(1)+' °C';
+  const win=crahBoost?5.8:7.2,wout=win+pwr/25;document.getElementById('kpi-water').textContent=win.toFixed(1)+'°C / '+wout.toFixed(1)+'°C';
+  const pue=(crahBoost?1.12:1.08)+(pwr/200)*0.03;document.getElementById('kpi-pue').textContent=pue.toFixed(2)+' / 0.21';
+}
+function select(r){selectedRack=r;rackMeshes.forEach(m=>m.material.color.setHex(0x1e293b));r.mesh.material.color.setHex(0x0284c7);updateInsp(r);const el=document.getElementById('rack-inspector');el.classList.remove('opacity-0','pointer-events-none','translate-x-[400px]');}
+function closeInsp(){selectedRack=null;rackMeshes.forEach(m=>m.material.color.setHex(0x1e293b));document.getElementById('rack-inspector').classList.add('opacity-0','pointer-events-none','translate-x-[400px]');}
+function updateInsp(r){document.getElementById('inspector-title').textContent=r.id+' (Row '+r.row+')';document.getElementById('rack-intake').textContent=r.intakeTemp.toFixed(1)+' °C';const ex=document.getElementById('rack-exhaust');ex.textContent=r.exhaustTemp.toFixed(1)+' °C';ex.className=r.exhaustTemp>=35?'font-mono text-red-400':'font-mono text-amber-400';document.getElementById('rack-power-text').textContent=r.powerKw.toFixed(1)+' kW / 12 kW';document.getElementById('rack-power-bar').style.width=((r.powerKw/12)*100)+'%';document.getElementById('slider-rack-load').value=r.loadPct;document.getElementById('slider-load-val').textContent=r.loadPct+'%';}
+function bind(){
+  addEventListener('pointerdown',e=>{if(e.clientY<60||e.clientX<330||e.clientX>innerWidth-400)return;mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-((e.clientY-56)/(innerHeight-56))*2+1;raycaster.setFromCamera(mouse,camera);const hit=raycaster.intersectObjects(rackMeshes)[0];if(hit){const r=racksData.find(x=>x.mesh===hit.object);if(r)select(r);}});
+  addEventListener('pointermove',e=>{mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-((e.clientY-56)/(innerHeight-56))*2+1;raycaster.setFromCamera(mouse,camera);const hit=raycaster.intersectObjects(rackMeshes)[0];const tip=document.getElementById('tooltip');if(hit){const r=racksData.find(x=>x.mesh===hit.object);if(r){tip.style.opacity='1';tip.style.left=(e.clientX+12)+'px';tip.style.top=(e.clientY-12)+'px';document.getElementById('tooltip-title').textContent=r.id;document.getElementById('tooltip-body').textContent='In '+r.intakeTemp.toFixed(1)+'°C · Out '+r.exhaustTemp.toFixed(1)+'°C · '+r.loadPct+'%';return;}}tip.style.opacity='0';});
+  document.getElementById('toggle-cold-air').onchange=e=>{showColdAir=e.target.checked;coldAir.visible=showColdAir;};
+  document.getElementById('toggle-hot-air').onchange=e=>{showHotAir=e.target.checked;hotAir.visible=showHotAir;};
+  document.getElementById('toggle-water-pipes').onchange=e=>{showWaterPipes=e.target.checked;waterP.visible=showWaterPipes;};
+  document.getElementById('toggle-dissipation').onchange=e=>{showDissipation=e.target.checked;dispP.visible=showDissipation;};
+  document.getElementById('toggle-heatmap').onchange=e=>{showHeatmap=e.target.checked;heatmapMesh.visible=showHeatmap;};
+  document.getElementById('slider-speed').oninput=e=>{flowSpeed=e.target.value/10;document.getElementById('speed-val').textContent=flowSpeed.toFixed(1)+'x';};
+  document.getElementById('slider-density').oninput=e=>{density=e.target.value/100;document.getElementById('density-val').textContent=e.target.value+'%';coldAir.geometry.setDrawRange(0,Math.floor(350*density));hotAir.geometry.setDrawRange(0,Math.floor(350*density));};
+  document.getElementById('slider-opacity').oninput=e=>{heatmapOpacity=e.target.value/100;document.getElementById('heatmap-opacity-val').textContent=e.target.value+'%';if(heatmapMaterial)heatmapMaterial.uniforms.uOpacity.value=heatmapOpacity;};
+  document.getElementById('slider-rack-load').oninput=e=>{if(!selectedRack)return;const v=+e.target.value;selectedRack.loadPct=v;selectedRack.exhaustTemp=20+v*0.17;selectedRack.powerKw=(v/100)*12;updateInsp(selectedRack);runAI();};
+  document.getElementById('btn-stress-test').onclick=()=>{const t=racksData[Math.floor(Math.random()*racksData.length)];t.loadPct=98;t.exhaustTemp=38.8;t.powerKw=11.8;if(selectedRack&&selectedRack.id===t.id)updateInsp(t);runAI();};
+  document.getElementById('btn-cool-boost').onclick=()=>{crahBoost=!crahBoost;const b=document.getElementById('btn-cool-boost');b.classList.toggle('glow-cyan',crahBoost);racksData.forEach(r=>{r.intakeTemp+=crahBoost?-3.5:3.5;r.exhaustTemp+=crahBoost?-4.8:4.8;});if(selectedRack)updateInsp(selectedRack);runAI();};
+  document.getElementById('btn-random-load').onclick=()=>{racksData.forEach(r=>{r.loadPct=Math.floor(35+Math.random()*55);r.exhaustTemp=20+r.loadPct*0.15;r.powerKw=(r.loadPct/100)*12;});if(selectedRack)updateInsp(selectedRack);runAI();};
+  document.getElementById('btn-apply-ai').onclick=()=>{racksData.forEach(r=>{if(r.exhaustTemp>=33||r.loadPct>80){r.loadPct=Math.floor(40+Math.random()*20);r.exhaustTemp=22+r.loadPct*0.12;r.powerKw=(r.loadPct/100)*12;}});crahBoost=true;if(selectedRack)updateInsp(selectedRack);runAI();};
+  document.getElementById('btn-ai-balance-rack').onclick=()=>{if(!selectedRack)return;selectedRack.loadPct=50;selectedRack.exhaustTemp=24.5;selectedRack.powerKw=6;updateInsp(selectedRack);runAI();};
+  document.getElementById('btn-close-inspector').onclick=closeInsp;
+  document.getElementById('btn-reset-view').onclick=()=>{controls.reset();camera.position.set(16,13,20);};
+  document.getElementById('btn-audio-toggle').onclick=()=>{audioOn=!audioOn;document.getElementById('btn-audio-toggle').textContent=audioOn?'Audio On':'Audio Off';};
+}
+function animate(time){
+  requestAnimationFrame(animate);controls.update();if(heatmapMaterial)heatmapMaterial.uniforms.uTime.value=time*0.001;
+  if(showColdAir){const p=coldAir.geometry.attributes.position.array;for(let i=0;i<p.length/3;i++){p[i*3+1]+=0.03*flowSpeed;if(p[i*3+1]>3.6){p[i*3]=(Math.random()-.5)*2.2;p[i*3+1]=.1;p[i*3+2]=(Math.random()-.5)*16;}}coldAir.geometry.attributes.position.needsUpdate=true;}
+  if(showHotAir){const p=hotAir.geometry.attributes.position.array;for(let i=0;i<p.length/3;i++){p[i*3+1]+=0.025*flowSpeed;p[i*3]+=(p[i*3]>0?1:-1)*0.02*flowSpeed;if(p[i*3+1]>4.5||Math.abs(p[i*3])>6.5){const s=Math.random()>.5?1:-1;p[i*3]=s*(2.8+Math.random()*1.5);p[i*3+1]=.5;p[i*3+2]=(Math.random()-.5)*16;}}hotAir.geometry.attributes.position.needsUpdate=true;}
+  if(showWaterPipes){const p=waterP.geometry.attributes.position.array,pr=waterP.geometry.userData.progress;for(let i=0;i<pr.length;i++){pr[i]=(pr[i]+0.003*flowSpeed)%1;const t=pr[i],y=i%2===0?.2:.4;if(t<.25){p[i*3]=-8;p[i*3+1]=y;p[i*3+2]=-10+t/.25*20;}else if(t<.5){p[i*3]=-8+(t-.25)/.25*16;p[i*3+1]=y;p[i*3+2]=10;}else if(t<.75){p[i*3]=8;p[i*3+1]=y;p[i*3+2]=10-(t-.5)/.25*20;}else{p[i*3]=8-(t-.75)/.25*16;p[i*3+1]=y;p[i*3+2]=-10;}}waterP.geometry.attributes.position.needsUpdate=true;}
+  if(showDissipation){const p=dispP.geometry.attributes.position.array;for(let i=0;i<p.length/3;i++){p[i*3+1]+=0.02*flowSpeed;if(p[i*3+1]>3.2){const r=racksData[Math.floor(Math.random()*racksData.length)];p[i*3]=r.mesh.position.x+(Math.random()-.5)*.8;p[i*3+1]=.5+Math.random()*1.8;p[i*3+2]=r.mesh.position.z+(Math.random()-.5)*.8;}}dispP.geometry.attributes.position.needsUpdate=true;}
+  renderer.render(scene,camera);
+}
+</script>
+</body>
+</html>

@@ -30,6 +30,7 @@ export default function Header(){
             <a href={`/${locale}/power`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">{t('power')}</a>
             <a href={`/${locale}/supervision`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Supervision</a>
             <a href={`/${locale}/supervision/bms`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">BMS</a>
+            <a href={`/${locale}/supervision/onduleurs`} className="px-3 py-2 hover:bg-[#F3F3F3] rounded">Onduleurs</a>
           </nav>
         </div>
         <div className="flex gap-3 items-center">

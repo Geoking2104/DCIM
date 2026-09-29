@@ -153,6 +153,44 @@ async fn torn_last_line_is_ignored() {
         .append("pdu2", &serde_json::json!({ "index": 2 }))
         .expect("append");
     assert_eq!(seq, 3);
+    // L'ajout nettoie la fin incomplète : la suite redevient lisible (sinon
+    // elle serait perdue à la consommation du fichier).
+    let after = spool.read_all("pdu2").expect("read");
+    assert_eq!(after.len(), 3, "la ligne partielle est nettoyée à l'ajout");
+    assert_eq!(after.last().map(|record| record.seq), Some(3));
+}
+
+#[tokio::test]
+async fn consumed_generation_gets_fresh_sequences_and_batches() {
+    let dir = temp_dir("generations");
+    let spool = Spool::open(&dir).expect("spool");
+    let sink = FakeSink::default();
+    for index in 0..3 {
+        spool
+            .append("gen", &serde_json::json!({ "index": index }))
+            .expect("append");
+    }
+    let first = spool.replay("gen", &sink).await.expect("replay");
+    assert_eq!(first.records_sent, 3);
+    assert_eq!(spool.pending("gen").expect("pending"), 0);
+    // Après consommation, la séquence continue au-delà du filigrane : aucune
+    // collision d'identifiant de lot entre ancienne et nouvelle génération.
+    let seq = spool
+        .append("gen", &serde_json::json!({ "index": 3 }))
+        .expect("append");
+    assert_eq!(seq, 4, "la séquence reprend au-delà du filigrane");
+    spool
+        .append("gen", &serde_json::json!({ "index": 4 }))
+        .expect("append");
+    spool
+        .append("gen", &serde_json::json!({ "index": 5 }))
+        .expect("append");
+    let second = spool.replay("gen", &sink).await.expect("replay");
+    assert_eq!(second.duplicates, 0, "nouvelle génération ≠ doublon");
+    assert_eq!(second.records_sent, 3);
+    assert_eq!(sink.stored_batches(), 2);
+    assert_eq!(sink.stored_records(), 6);
+    assert_eq!(spool.pending("gen").expect("pending"), 0);
 }
 
 #[tokio::test]

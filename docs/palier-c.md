@@ -30,6 +30,10 @@ Mêmes noms de champs camelCase que Nest. Les racks, devices et relations `MOUNT
 
 ## Suite
 
-1. Autorisation RBAC/ABAC **par resolver** (Rust et Nest) en s'appuyant sur le `Principal` injecté ; tests négatifs bout-en-bout.
+1. ✅ Autorisation RBAC/ABAC **par resolver** (Rust et Nest) en s'appuyant sur le
+   `Principal` injecté : périmètre de sites par tenant (`TENANT_CATALOG`),
+   écriture `qinode-ops`, suppression `qinode-admin`, subscriptions filtrées ;
+   tests négatifs inter-tenants (`qinode-graph::auth_tests`,
+   `resolver-scope.test.cjs`).
 2. Subscriptions multi-pod via un bus durable
 3. Période de lecture parallèle Nest/Rust avant retrait de Nest

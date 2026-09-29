@@ -2058,6 +2058,7 @@ dependencies = [
  "async-graphql",
  "futures-util",
  "neo4rs",
+ "qinode-auth",
  "serde",
  "tokio",
  "tokio-stream",

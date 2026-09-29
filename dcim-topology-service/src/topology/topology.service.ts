@@ -27,6 +27,8 @@ export class TopologyService {
       await this.pubSub.publish(TopologyEvents.DEVICE_MOUNTED, {
         deviceMounted: event.device,
         rackId: event.rackId || '',
+        // Site du rack d'accueil : nécessaire au filtrage par périmètre des abonnés.
+        rackSiteId: event.rack?.siteId ?? null,
       });
     }
   }
@@ -63,12 +65,15 @@ export class TopologyService {
   }
 
   async deleteRack(id: string): Promise<boolean> {
+    // Récupère le rack avant suppression pour tracer l'événement avec son site
+    // (filtrage par périmètre des abonnés).
+    const rack = await this.getRackWithDevices(id).catch(() => undefined);
     const result = await this.neo4jService.write(
       `MATCH (r:Rack {id: $id}) OPTIONAL MATCH (d:Device)-[:INSTALLED_IN]->(r) DETACH DELETE d, r RETURN $id AS id`,
       { id },
     );
     if (result.records.length === 0) throw new NotFoundException(`Rack ${id} not found`);
-    await this.emit(this.life(LifecycleKind.RACK_DELETED, { rackId: id }));
+    await this.emit(this.life(LifecycleKind.RACK_DELETED, { rackId: id, rack }));
     return true;
   }
 
@@ -156,6 +161,17 @@ export class TopologyService {
     );
     if (result.records.length === 0) throw new NotFoundException(`Rack ${rackId} not found`);
     return this.mapRackRecord(result.records[0]);
+  }
+
+  /** Site du rack d'accueil d'un device (null si device absent ou non monté). */
+  async deviceRackSite(deviceId: string): Promise<string | null> {
+    const result = await this.neo4jService.read(
+      `MATCH (d:Device {id: $deviceId}) OPTIONAL MATCH (d)-[:INSTALLED_IN]->(r:Rack) RETURN r.siteId AS siteId`,
+      { deviceId },
+    );
+    if (result.records.length === 0) return null;
+    const siteId = result.records[0].get('siteId');
+    return siteId ? String(siteId) : null;
   }
 
   private num(v: any): number {

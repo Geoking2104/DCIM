@@ -1,9 +1,10 @@
 //! Neo4j-backed GraphQL topology with `rackUpdated` / `deviceMounted` subscriptions.
 
-use async_graphql::{Context, InputObject, Object, Schema, SimpleObject, Subscription, ID};
+use async_graphql::{Context, Error, InputObject, Object, Schema, SimpleObject, Subscription, ID};
 use futures_util::Stream;
 use neo4rs::{query, Graph, Row};
-use std::collections::BTreeMap;
+use qinode_auth::{Principal, TenantCatalog};
+use std::collections::{BTreeMap, BTreeSet};
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -123,6 +124,42 @@ impl Neo4jStore {
             }
         }
         Ok(rack)
+    }
+
+    /// Site d'un rack (`None` si introuvable) — contrôle de périmètre avant mutation.
+    async fn rack_site(&self, id: &str) -> Result<Option<String>, String> {
+        let mut rows = self
+            .graph
+            .execute(query("MATCH (r:Rack {id: $id}) RETURN r.site_id AS site_id").param("id", id))
+            .await
+            .map_err(neo4j_error)?;
+        match rows.next().await.map_err(neo4j_error)? {
+            Some(row) => Ok(Some(field(&row, "site_id")?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Site du rack d'accueil d'un device (`None` si device absent ou non monté).
+    async fn device_site(&self, id: &str) -> Result<Option<String>, String> {
+        let mut rows = self
+            .graph
+            .execute(
+                query(
+                    "MATCH (d:Device {id: $id}) OPTIONAL MATCH (d)-[:MOUNTED_IN]->(r:Rack) RETURN r.site_id AS site_id",
+                )
+                .param("id", id),
+            )
+            .await
+            .map_err(neo4j_error)?;
+        match rows.next().await.map_err(neo4j_error)? {
+            Some(row) => {
+                let site: Option<String> = row
+                    .get("site_id")
+                    .map_err(|error| format!("Champ Neo4j site_id invalide: {error}"))?;
+                Ok(site)
+            }
+            None => Ok(None),
+        }
     }
 
     async fn create_rack(&self, input: CreateRackInput) -> Result<Rack, String> {
@@ -352,6 +389,125 @@ impl Default for Bus {
     }
 }
 
+/// Périmètre d'autorisation d'un résolveur, dérivé du [`Principal`] injecté par
+/// le gateway (miroir des règles du service Nest) :
+///
+/// - principal anonyme (développement local, `KEYCLOAK_OPTIONAL=true`) ou rôle
+///   `qinode-admin` : accès complet ;
+/// - sinon : lecture limitée aux sites des tenants listés dans le jeton
+///   (catalogue `TENANT_CATALOG`, identité par défaut) ; écriture réservée au
+///   rôle `qinode-ops`, suppression (`deleteRack`) au rôle `qinode-admin`,
+///   toujours dans le périmètre.
+///
+/// Fail-closed : sans tenant listé, aucun site n'est accessible.
+#[derive(Clone, Debug)]
+pub struct ResolverScope {
+    unrestricted: bool,
+    writable: bool,
+    admin: bool,
+    sites: BTreeSet<String>,
+}
+
+impl ResolverScope {
+    fn full_access() -> Self {
+        Self {
+            unrestricted: true,
+            writable: true,
+            admin: true,
+            sites: BTreeSet::new(),
+        }
+    }
+
+    pub fn from_principal(principal: &Principal, catalog: &TenantCatalog) -> Self {
+        if principal.anonymous || principal.is_admin() {
+            return Self::full_access();
+        }
+        Self {
+            unrestricted: false,
+            writable: principal.roles.iter().any(|role| role == "qinode-ops"),
+            admin: false,
+            sites: catalog.sites_for(&principal.tenants),
+        }
+    }
+
+    pub fn unrestricted(&self) -> bool {
+        self.unrestricted
+    }
+
+    pub fn sites(&self) -> &BTreeSet<String> {
+        &self.sites
+    }
+
+    pub fn site_allowed(&self, site: &str) -> bool {
+        self.unrestricted || self.sites.contains(site)
+    }
+
+    pub fn require_ops(&self) -> Result<(), Error> {
+        if self.unrestricted || self.writable {
+            Ok(())
+        } else {
+            Err(Error::new("rôle qinode-ops (ou qinode-admin) requis"))
+        }
+    }
+
+    pub fn require_admin(&self) -> Result<(), Error> {
+        if self.unrestricted || self.admin {
+            Ok(())
+        } else {
+            Err(Error::new("rôle qinode-admin requis"))
+        }
+    }
+
+    pub fn require_site(&self, site: &str) -> Result<(), Error> {
+        if self.site_allowed(site) {
+            Ok(())
+        } else {
+            Err(Error::new(format!("site « {site} » hors périmètre tenant")))
+        }
+    }
+}
+
+/// Extrait le périmètre du contexte GraphQL. Le gateway injecte toujours un
+/// `Principal` ; son absence est refusée (fail-closed).
+pub fn scope_of(ctx: &Context<'_>) -> Result<ResolverScope, Error> {
+    let principal = ctx
+        .data_opt::<Principal>()
+        .ok_or_else(|| Error::new("authentification requise"))?;
+    let catalog = ctx.data_opt::<TenantCatalog>().cloned().unwrap_or_default();
+    Ok(ResolverScope::from_principal(principal, &catalog))
+}
+
+/// Sites autorisés pour un flux d'abonnement (`None` = pas de restriction ;
+/// erreur d'autorisation = ensemble vide, fail-closed).
+async fn subscription_sites(ctx: &Context<'_>) -> Option<BTreeSet<String>> {
+    match scope_of(ctx) {
+        Ok(scope) if scope.unrestricted() => None,
+        Ok(scope) => Some(scope.sites().clone()),
+        Err(_) => Some(BTreeSet::new()),
+    }
+}
+
+/// Identifiants de racks autorisés pour les abonnements « device » (`None` = tous).
+async fn subscription_rack_ids(ctx: &Context<'_>) -> Option<BTreeSet<String>> {
+    let scope = match scope_of(ctx) {
+        Ok(scope) => scope,
+        Err(_) => return Some(BTreeSet::new()),
+    };
+    if scope.unrestricted() {
+        return None;
+    }
+    match ctx.data_unchecked::<Neo4jStore>().racks().await {
+        Ok(racks) => Some(
+            racks
+                .into_iter()
+                .filter(|rack| scope.site_allowed(&rack.site_id))
+                .map(|rack| rack.id.as_str().to_string())
+                .collect(),
+        ),
+        Err(_) => Some(BTreeSet::new()),
+    }
+}
+
 #[derive(InputObject)]
 struct CreateRackInput {
     name: String,
@@ -405,17 +561,26 @@ pub struct QueryRoot;
 #[Object]
 impl QueryRoot {
     async fn racks(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<Rack>> {
-        ctx.data_unchecked::<Neo4jStore>()
+        let scope = scope_of(ctx)?;
+        let racks = ctx
+            .data_unchecked::<Neo4jStore>()
             .racks()
             .await
-            .map_err(async_graphql::Error::new)
+            .map_err(Error::new)?;
+        Ok(racks
+            .into_iter()
+            .filter(|rack| scope.site_allowed(&rack.site_id))
+            .collect())
     }
 
     async fn rack(&self, ctx: &Context<'_>, id: ID) -> async_graphql::Result<Option<Rack>> {
-        ctx.data_unchecked::<Neo4jStore>()
+        let scope = scope_of(ctx)?;
+        let rack = ctx
+            .data_unchecked::<Neo4jStore>()
             .rack(id.as_str())
             .await
-            .map_err(async_graphql::Error::new)
+            .map_err(Error::new)?;
+        Ok(rack.filter(|rack| scope.site_allowed(&rack.site_id)))
     }
 }
 
@@ -428,11 +593,14 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateRackInput,
     ) -> async_graphql::Result<Rack> {
+        let scope = scope_of(ctx)?;
+        scope.require_ops()?;
+        scope.require_site(&input.site_id)?;
         let rack = ctx
             .data_unchecked::<Neo4jStore>()
             .create_rack(input)
             .await
-            .map_err(async_graphql::Error::new)?;
+            .map_err(Error::new)?;
         emit_rack(ctx, &rack);
         Ok(rack)
     }
@@ -442,20 +610,33 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: UpdateRackInput,
     ) -> async_graphql::Result<Rack> {
-        let rack = ctx
-            .data_unchecked::<Neo4jStore>()
-            .update_rack(input)
-            .await
-            .map_err(async_graphql::Error::new)?;
+        let scope = scope_of(ctx)?;
+        scope.require_ops()?;
+        let store = ctx.data_unchecked::<Neo4jStore>();
+        let key = input.id.to_string();
+        let current_site = store.rack_site(&key).await.map_err(Error::new)?;
+        match current_site {
+            Some(site) => scope.require_site(&site)?,
+            None => return Err(Error::new(format!("Rack {key} introuvable"))),
+        }
+        if let Some(site) = input.site_id.as_deref() {
+            scope.require_site(site)?;
+        }
+        let rack = store.update_rack(input).await.map_err(Error::new)?;
         emit_rack(ctx, &rack);
         Ok(rack)
     }
 
     async fn delete_rack(&self, ctx: &Context<'_>, id: ID) -> async_graphql::Result<bool> {
-        ctx.data_unchecked::<Neo4jStore>()
-            .delete_rack(id.as_str())
-            .await
-            .map_err(async_graphql::Error::new)
+        let scope = scope_of(ctx)?;
+        scope.require_admin()?;
+        let store = ctx.data_unchecked::<Neo4jStore>();
+        let site = store.rack_site(id.as_str()).await.map_err(Error::new)?;
+        match site {
+            Some(site) => scope.require_site(&site)?,
+            None => return Err(Error::new(format!("Rack {} introuvable", id.as_str()))),
+        }
+        store.delete_rack(id.as_str()).await.map_err(Error::new)
     }
 
     async fn create_device_and_mount(
@@ -463,18 +644,21 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: CreateDeviceInput,
     ) -> async_graphql::Result<Device> {
+        let scope = scope_of(ctx)?;
+        scope.require_ops()?;
         let store = ctx.data_unchecked::<Neo4jStore>();
         let rack_id = input.rack_id.clone();
+        let site = store.rack_site(&rack_id).await.map_err(Error::new)?;
+        match site {
+            Some(site) => scope.require_site(&site)?,
+            None => return Err(Error::new(format!("Rack {rack_id} introuvable"))),
+        }
         let device = store
             .create_device_and_mount(input)
             .await
-            .map_err(async_graphql::Error::new)?;
+            .map_err(Error::new)?;
         emit_device(ctx, &device);
-        if let Some(rack) = store
-            .rack(&rack_id)
-            .await
-            .map_err(async_graphql::Error::new)?
-        {
+        if let Some(rack) = store.rack(&rack_id).await.map_err(Error::new)? {
             emit_rack(ctx, &rack);
         }
         Ok(device)
@@ -485,11 +669,20 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: UpdateDeviceInput,
     ) -> async_graphql::Result<Device> {
-        let device = ctx
-            .data_unchecked::<Neo4jStore>()
-            .update_device(input)
-            .await
-            .map_err(async_graphql::Error::new)?;
+        let scope = scope_of(ctx)?;
+        scope.require_ops()?;
+        let store = ctx.data_unchecked::<Neo4jStore>();
+        let id = input.id.to_string();
+        let site = store.device_site(&id).await.map_err(Error::new)?;
+        match site {
+            Some(site) => scope.require_site(&site)?,
+            None => {
+                return Err(Error::new(format!(
+                    "Device {id} introuvable ou hors périmètre"
+                )))
+            }
+        }
+        let device = store.update_device(input).await.map_err(Error::new)?;
         emit_device(ctx, &device);
         Ok(device)
     }
@@ -499,20 +692,44 @@ impl MutationRoot {
         ctx: &Context<'_>,
         input: MoveDeviceInput,
     ) -> async_graphql::Result<Device> {
-        let device = ctx
-            .data_unchecked::<Neo4jStore>()
-            .move_device(input)
-            .await
-            .map_err(async_graphql::Error::new)?;
+        let scope = scope_of(ctx)?;
+        scope.require_ops()?;
+        let store = ctx.data_unchecked::<Neo4jStore>();
+        let device_id = input.device_id.to_string();
+        let current_site = store.device_site(&device_id).await.map_err(Error::new)?;
+        match current_site {
+            Some(site) => scope.require_site(&site)?,
+            None => {
+                return Err(Error::new(format!(
+                    "Device {device_id} introuvable ou hors périmètre"
+                )))
+            }
+        }
+        let target_site = store.rack_site(&input.rack_id).await.map_err(Error::new)?;
+        match target_site {
+            Some(site) => scope.require_site(&site)?,
+            None => return Err(Error::new(format!("Rack {} introuvable", input.rack_id))),
+        }
+        let device = store.move_device(input).await.map_err(Error::new)?;
         emit_device(ctx, &device);
         Ok(device)
     }
 
     async fn unmount_device(&self, ctx: &Context<'_>, id: ID) -> async_graphql::Result<bool> {
-        ctx.data_unchecked::<Neo4jStore>()
-            .unmount_device(id.as_str())
-            .await
-            .map_err(async_graphql::Error::new)
+        let scope = scope_of(ctx)?;
+        scope.require_ops()?;
+        let store = ctx.data_unchecked::<Neo4jStore>();
+        let site = store.device_site(id.as_str()).await.map_err(Error::new)?;
+        match site {
+            Some(site) => scope.require_site(&site)?,
+            None => {
+                return Err(Error::new(format!(
+                    "Device {} introuvable ou hors périmètre",
+                    id.as_str()
+                )))
+            }
+        }
+        store.unmount_device(id.as_str()).await.map_err(Error::new)
     }
 }
 
@@ -525,11 +742,17 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
         rack_id: Option<ID>,
     ) -> Pin<Box<dyn Stream<Item = Rack> + Send>> {
+        let allowed_sites = subscription_sites(ctx).await;
         let rx = ctx.data_unchecked::<Bus>().racks.subscribe();
         let stream = BroadcastStream::new(rx).filter_map(move |res| {
             let rack = res.ok()?;
             if let Some(id) = &rack_id {
                 if rack.id.as_str() != id.as_str() {
+                    return None;
+                }
+            }
+            if let Some(sites) = &allowed_sites {
+                if !sites.contains(&rack.site_id) {
                     return None;
                 }
             }
@@ -543,12 +766,19 @@ impl SubscriptionRoot {
         ctx: &Context<'_>,
         rack_id: Option<ID>,
     ) -> Pin<Box<dyn Stream<Item = Device> + Send>> {
+        let allowed_racks = subscription_rack_ids(ctx).await;
         let rx = ctx.data_unchecked::<Bus>().devices.subscribe();
         let stream = BroadcastStream::new(rx).filter_map(move |res| {
             let device = res.ok()?;
             if let Some(id) = &rack_id {
                 if device.rack_id.as_deref() != Some(id.as_str()) {
                     return None;
+                }
+            }
+            if let Some(racks) = &allowed_racks {
+                match device.rack_id.as_deref() {
+                    Some(rack) if racks.contains(rack) => {}
+                    _ => return None,
                 }
             }
             Some(device)
@@ -563,6 +793,7 @@ pub fn schema(store: Neo4jStore) -> AppSchema {
     Schema::build(QueryRoot, MutationRoot, SubscriptionRoot)
         .data(store)
         .data(Bus::new())
+        .data(TenantCatalog::from_env())
         .finish()
 }
 
@@ -593,5 +824,115 @@ mod tests {
         std::env::set_var(missing, "  ");
         assert!(required_env(missing).is_err());
         std::env::remove_var(missing);
+    }
+}
+
+#[cfg(test)]
+mod auth_tests {
+    use super::*;
+    use async_graphql::{EmptyMutation, EmptySubscription};
+
+    fn scoped_principal(roles: &[&str], tenants: &[&str]) -> Principal {
+        Principal {
+            subject: "test-subject".into(),
+            tenants: tenants.iter().map(|value| value.to_string()).collect(),
+            roles: roles.iter().map(|value| value.to_string()).collect(),
+            anonymous: false,
+        }
+    }
+
+    fn catalog() -> TenantCatalog {
+        TenantCatalog::from_json(
+            r#"[{"slug":"paris-east","siteId":"site-paris-01"},{"slug":"lille","siteId":"site-lille-01"}]"#,
+        )
+    }
+
+    #[test]
+    fn anonymous_principal_keeps_local_dev_unrestricted() {
+        let scope = ResolverScope::from_principal(&Principal::anonymous(), &catalog());
+        assert!(scope.unrestricted());
+        assert!(scope.site_allowed("n-importe-quel-site"));
+        assert!(scope.require_ops().is_ok());
+        assert!(scope.require_admin().is_ok());
+    }
+
+    #[test]
+    fn admin_is_unrestricted_and_writable() {
+        let scope =
+            ResolverScope::from_principal(&scoped_principal(&["qinode-admin"], &[]), &catalog());
+        assert!(scope.unrestricted());
+        assert!(scope.site_allowed("site-lille-01"));
+        assert!(scope.require_ops().is_ok());
+        assert!(scope.require_admin().is_ok());
+    }
+
+    #[test]
+    fn ops_is_scoped_to_its_tenants_sites() {
+        let principal = scoped_principal(&["qinode-ops"], &["paris-east"]);
+        let scope = ResolverScope::from_principal(&principal, &catalog());
+        assert!(!scope.unrestricted());
+        assert!(scope.site_allowed("site-paris-01"));
+        assert!(!scope.site_allowed("site-lille-01"));
+        assert!(scope.require_ops().is_ok());
+        assert!(scope.require_site("site-paris-01").is_ok());
+        // Test négatif inter-tenant : l'écriture hors périmètre est refusée.
+        let denied = scope
+            .require_site("site-lille-01")
+            .expect_err("inter-tenant refusé");
+        assert!(denied.message.contains("hors périmètre"));
+        assert!(scope.require_admin().is_err());
+    }
+
+    #[test]
+    fn viewer_reads_within_scope_but_cannot_write() {
+        let scope = ResolverScope::from_principal(
+            &scoped_principal(&["qinode-viewer"], &["lille"]),
+            &catalog(),
+        );
+        assert!(scope.site_allowed("site-lille-01"));
+        assert!(!scope.site_allowed("site-paris-01"));
+        assert!(scope.require_ops().is_err());
+    }
+
+    #[test]
+    fn principal_without_tenants_is_fail_closed() {
+        let scope =
+            ResolverScope::from_principal(&scoped_principal(&["qinode-ops"], &[]), &catalog());
+        assert!(!scope.site_allowed("site-paris-01"));
+        assert!(!scope.site_allowed(""));
+    }
+
+    struct ScopeProbe;
+
+    #[Object]
+    impl ScopeProbe {
+        async fn scope_probe(&self, ctx: &Context<'_>) -> async_graphql::Result<String> {
+            let scope = scope_of(ctx)?;
+            Ok(if scope.unrestricted() {
+                "unrestricted".to_string()
+            } else {
+                "scoped".to_string()
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn resolver_context_requires_a_principal() {
+        let schema = Schema::build(ScopeProbe, EmptyMutation, EmptySubscription).finish();
+        let response = schema.execute("{ scopeProbe }").await;
+        let error = response.errors.first().expect("erreur attendue");
+        assert!(error.message.contains("authentification requise"));
+    }
+
+    #[tokio::test]
+    async fn resolver_context_reads_scope_from_injected_data() {
+        let schema = Schema::build(ScopeProbe, EmptyMutation, EmptySubscription)
+            .data(scoped_principal(&["qinode-ops"], &["paris-east"]))
+            .data(catalog())
+            .finish();
+        let response = schema.execute("{ scopeProbe }").await;
+        assert!(response.errors.is_empty(), "{:?}", response.errors);
+        let data = response.data.into_json().expect("json");
+        assert_eq!(data["scopeProbe"].as_str(), Some("scoped"));
     }
 }

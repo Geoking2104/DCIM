@@ -58,11 +58,10 @@ async fn authenticate(
     let auth = headers
         .get(AUTHORIZATION)
         .and_then(|value| value.to_str().ok());
-    state
-        .kc
-        .authenticate(auth)
-        .await
-        .map_err(|error| (StatusCode::UNAUTHORIZED, error.to_string()))
+    state.kc.authenticate(auth).await.map_err(|error| {
+        tracing::warn!(%error, "authentification refusée");
+        (StatusCode::UNAUTHORIZED, error.to_string())
+    })
 }
 
 #[tokio::main]
@@ -130,6 +129,10 @@ async fn graphql_ws_handler(
                             .authenticate(auth)
                             .await
                             .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+                        tracing::info!(
+                            subject = %principal.subject,
+                            "ws : connexion authentifiée"
+                        );
                         let mut data = Data::default();
                         data.insert(principal);
                         Ok(data)
@@ -200,6 +203,11 @@ async fn graphql_handler(
     req: GraphQLRequest,
 ) -> Result<GraphQLResponse, (StatusCode, String)> {
     let principal = authenticate(&state, &headers).await?;
+    tracing::debug!(
+        subject = %principal.subject,
+        tenants = ?principal.tenants,
+        "graphql : requête authentifiée"
+    );
     let mut request = req.into_inner();
     request = request.data(principal);
     Ok(state.gql.execute(request).await.into())
@@ -225,8 +233,16 @@ async fn redfish_snapshot(
     Json(target): Json<BmcTarget>,
 ) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
     let principal = authenticate(&state, &headers).await?;
-    ensure_role(&principal, &["qinode-collector"])
-        .map_err(|error| (StatusCode::FORBIDDEN, error.to_string()))?;
+    if let Err(error) = ensure_role(&principal, &["qinode-collector"]) {
+        tracing::warn!(
+            subject = %principal.subject,
+            route = "redfish/snapshot",
+            %error,
+            "accès machine refusé"
+        );
+        return Err((StatusCode::FORBIDDEN, error.to_string()));
+    }
+    tracing::info!(subject = %principal.subject, route = "redfish/snapshot", "accès machine autorisé");
     snapshot(target)
         .await
         .map(Json)
@@ -238,8 +254,16 @@ async fn insert_power(
     Json(row): Json<PowerSample>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let principal = authenticate(&state, &headers).await?;
-    ensure_role(&principal, &["qinode-collector"])
-        .map_err(|error| (StatusCode::FORBIDDEN, error.to_string()))?;
+    if let Err(error) = ensure_role(&principal, &["qinode-collector"]) {
+        tracing::warn!(
+            subject = %principal.subject,
+            route = "telemetry/power",
+            %error,
+            "accès machine refusé"
+        );
+        return Err((StatusCode::FORBIDDEN, error.to_string()));
+    }
+    tracing::info!(subject = %principal.subject, route = "telemetry/power", "accès machine autorisé");
     state
         .ch
         .insert_power(&row)

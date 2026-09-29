@@ -5,7 +5,7 @@ import { canAccessTenant, rolesOnTenant } from '@/lib/permissions';
 
 export async function GET(req: NextRequest) {
   const session = await readSessionToken(req.cookies.get(sessionCookieName())?.value);
-  if (!session) return NextResponse.json({ authenticated: false, tenants: [] }, { status: 401 });
+  if (!session) return NextResponse.json({ authenticated: false, tenants: [] }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
   const tenants = resolveTenants(session.tenants || []).map((t) => ({
     ...t,
     roles: rolesOnTenant(session.permissions || [], t.slug, session.roles || [])
@@ -18,21 +18,21 @@ export async function GET(req: NextRequest) {
     email: session.email,
     roles: session.roles,
     permissions: session.permissions
-  });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 export async function POST(req: NextRequest) {
   const session = await readSessionToken(req.cookies.get(sessionCookieName())?.value);
-  if (!session) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!session) return NextResponse.json({ ok: false }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
   const slug = String((await req.json().catch(() => ({}))).slug || '');
   if (!slug || !canAccessTenant(session.permissions || [], slug, session.roles || [])) {
-    return NextResponse.json({ ok: false, error: 'tenant interdit' }, { status: 403 });
+    return NextResponse.json({ ok: false, error: 'tenant interdit' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
   }
   const res = NextResponse.json({
     ok: true,
     active: slug,
     roles: rolesOnTenant(session.permissions || [], slug, session.roles || [])
-  });
+  }, { headers: { 'Cache-Control': 'no-store' } });
   res.cookies.set({ name: TENANT_COOKIE, value: slug, httpOnly: false, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30 });
   return res;
 }

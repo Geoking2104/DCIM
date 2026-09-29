@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       facility_kwh: Number(b.facility_kwh ?? b.total),
       it_kwh: Number(b.it_kwh ?? b.it)
     });
-    return NextResponse.json(out, { headers: { 'X-DCIM-Data-Source': out.source } });
+    return NextResponse.json(out, { headers: { 'Cache-Control': 'no-store', 'X-DCIM-Data-Source': out.source } });
   } catch (e: any) {
     if (e instanceof DataSourceUnavailableError) return dataSourceErrorResponse(e);
     return NextResponse.json({ error: e.message }, { status: 422 });

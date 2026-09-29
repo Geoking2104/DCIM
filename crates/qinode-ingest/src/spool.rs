@@ -91,14 +91,41 @@ impl Spool {
         self.root.join(format!("{}.lock", sanitize(source)))
     }
 
-    /// Ajoute un échantillon et renvoie sa séquence.
+    /// Filigrane persistant : dernière séquence assignée pour la source, même
+    /// après consommation du fichier. Il garantit que deux générations de spool
+    /// n'utilisent jamais les mêmes séquences (donc jamais les mêmes
+    /// identifiants de lot) : un rejeu d'une ancienne génération reste un
+    /// « doublon », tandis qu'une nouvelle collecte produit de nouveaux lots.
+    fn watermark_path(&self, source: &str) -> PathBuf {
+        self.root.join(format!("{}.seq", sanitize(source)))
+    }
+
+    fn read_watermark(&self, source: &str) -> u64 {
+        fs::read_to_string(self.watermark_path(source))
+            .ok()
+            .and_then(|value| value.trim().parse().ok())
+            .unwrap_or(0)
+    }
+
+    fn write_watermark(&self, source: &str, seq: u64) -> Result<(), IngestError> {
+        if seq <= self.read_watermark(source) {
+            return Ok(());
+        }
+        fs::write(self.watermark_path(source), format!("{seq}\n"))
+            .map_err(|error| IngestError::Io(error.to_string()))
+    }
+
+    /// Ajoute un échantillon et renvoie sa séquence. La séquence continue après
+    /// la dernière séquence assignée (fichier courant ou filigrane) : elle
+    /// n'est jamais réinitialisée, même après consommation du fichier.
     pub fn append<T: Serialize>(&self, source: &str, payload: &T) -> Result<u64, IngestError> {
         let path = self.file_path(source);
-        let seq = read_records(&path)?
+        heal_trailing_partial_line(&path)?;
+        let file_last = read_records(&path)?
             .last()
             .map(|record| record.seq)
-            .unwrap_or(0)
-            + 1;
+            .unwrap_or(0);
+        let seq = file_last.max(self.read_watermark(source)) + 1;
         let record = SpoolRecord {
             seq,
             payload: serde_json::to_value(payload)
@@ -161,6 +188,11 @@ impl Spool {
             }
         }
         if report.failed_batches == 0 && offset == total && total > 0 {
+            // Point de commit : on avance d'abord le filigrane, puis on retire
+            // le fichier. En cas d'arrêt entre les deux, le fichier est rejoué
+            // tel quel (mêmes identifiants, donc sans doublon).
+            let last_seq = records.last().map(|record| record.seq).unwrap_or(0);
+            self.write_watermark(source, last_seq)?;
             fs::remove_file(self.file_path(source))
                 .map_err(|error| IngestError::Io(error.to_string()))?;
         }
@@ -188,6 +220,32 @@ fn sanitize(source: &str) -> String {
             }
         })
         .collect()
+}
+
+/// Nettoie une fin de fichier incomplète (écriture interrompue) avant d'ajouter
+/// de nouvelles lignes : sans cela, la ligne partielle resterait « collée »
+/// devant les échantillons suivants, qui seraient ignorés à la lecture puis
+/// perdus à la consommation du fichier.
+fn heal_trailing_partial_line(path: &Path) -> Result<(), IngestError> {
+    let data = match fs::read(path) {
+        Ok(data) => data,
+        Err(_) => return Ok(()),
+    };
+    if data.is_empty() || data.last() == Some(&b'\n') {
+        return Ok(());
+    }
+    let cut = data
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map(|position| position + 1)
+        .unwrap_or(0);
+    let file = OpenOptions::new()
+        .write(true)
+        .open(path)
+        .map_err(|error| IngestError::Io(error.to_string()))?;
+    file.set_len(cut as u64)
+        .map_err(|error| IngestError::Io(error.to_string()))?;
+    Ok(())
 }
 
 fn read_records(path: &Path) -> Result<Vec<SpoolRecord>, IngestError> {

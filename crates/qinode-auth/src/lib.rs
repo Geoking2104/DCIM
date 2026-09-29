@@ -7,7 +7,7 @@
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use thiserror::Error;
@@ -66,6 +66,113 @@ pub fn ensure_tenant_allowed(principal: &Principal, tenant: &str) -> Result<(), 
         Ok(())
     } else {
         Err(AuthError::Tenant(tenant.to_string()))
+    }
+}
+
+/// Catalogue tenant → site (source : `TENANT_CATALOG`, JSON
+/// `[{"slug":"paris-east","siteId":"site-paris-01"}, …]`).
+///
+/// C'est le pont entre les tenants des jetons Keycloak et les périmètres des
+/// données (un rack porte un `site_id`). Sans entrée — ou sans catalogue —
+/// l'identité est utilisée : le slug du tenant vaut alors l'identifiant de site.
+/// Le périmètre obtenu est **borné et ordonné** ; sans tenant listé il est vide
+/// (fail-closed).
+#[derive(Debug, Clone, Default)]
+pub struct TenantCatalog {
+    sites: BTreeMap<String, String>,
+}
+
+#[derive(Deserialize)]
+struct TenantCatalogEntry {
+    #[serde(default)]
+    slug: Option<String>,
+    #[serde(default)]
+    tenant: Option<String>,
+    #[serde(default, rename = "siteId")]
+    site_id: Option<String>,
+}
+
+impl TenantCatalog {
+    pub fn from_json(raw: &str) -> Self {
+        let mut sites = BTreeMap::new();
+        if let Ok(entries) = serde_json::from_str::<Vec<TenantCatalogEntry>>(raw) {
+            for entry in entries {
+                let slug = entry
+                    .slug
+                    .or(entry.tenant)
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty());
+                if let Some(slug) = slug {
+                    let site = entry
+                        .site_id
+                        .map(|value| value.trim().to_string())
+                        .filter(|value| !value.is_empty())
+                        .unwrap_or_else(|| slug.clone());
+                    sites.insert(slug, site);
+                }
+            }
+        }
+        Self { sites }
+    }
+
+    pub fn from_env() -> Self {
+        Self::from_json(&std::env::var("TENANT_CATALOG").unwrap_or_default())
+    }
+
+    /// Site associé au tenant (identité si absent du catalogue).
+    pub fn site_for(&self, tenant: &str) -> String {
+        self.sites
+            .get(tenant)
+            .cloned()
+            .unwrap_or_else(|| tenant.to_string())
+    }
+
+    /// Ensemble des sites autorisés pour une liste de tenants.
+    pub fn sites_for<S: AsRef<str>>(&self, tenants: &[S]) -> BTreeSet<String> {
+        tenants
+            .iter()
+            .map(|tenant| self.site_for(tenant.as_ref()))
+            .collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.sites.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.sites.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tenant_catalog_tests {
+    use super::*;
+
+    #[test]
+    fn catalog_maps_slugs_and_falls_back_to_identity() {
+        let catalog = TenantCatalog::from_json(
+            r#"[{"slug":"paris-east","siteId":"site-paris-01"},{"tenant":"lille","siteId":"site-lille-01"},{"slug":"sans-site"}]"#,
+        );
+        assert_eq!(catalog.len(), 3);
+        assert_eq!(catalog.site_for("paris-east"), "site-paris-01");
+        assert_eq!(catalog.site_for("lille"), "site-lille-01");
+        assert_eq!(catalog.site_for("sans-site"), "sans-site");
+        assert_eq!(catalog.site_for("inconnu"), "inconnu");
+
+        let sites = catalog.sites_for(&["paris-east", "inconnu"]);
+        assert_eq!(sites.len(), 2);
+        assert!(sites.contains("site-paris-01"));
+        assert!(sites.contains("inconnu"));
+
+        let empty: Vec<String> = Vec::new();
+        assert!(catalog.sites_for(&empty).is_empty());
+    }
+
+    #[test]
+    fn catalog_tolerates_invalid_json() {
+        assert!(TenantCatalog::from_json("pas du json").is_empty());
+        assert!(TenantCatalog::from_json("").is_empty());
+        assert!(TenantCatalog::from_json("{\"slug\":\"x\"}").is_empty());
     }
 }
 

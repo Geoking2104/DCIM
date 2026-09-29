@@ -1,7 +1,8 @@
-import { Inject } from '@nestjs/common';
-import { Args, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
+import { ForbiddenException, Inject } from '@nestjs/common';
+import { Args, Context, ID, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakUser } from '../auth/keycloak-user';
+import { allowedSites, siteAllowed } from '../auth/tenant-scope';
 import { Roles } from '../auth/roles.decorator';
 import { CreateDeviceInput } from './dto/create-device.input';
 import { CreateRackInput } from './dto/create-rack.input';
@@ -24,6 +25,8 @@ interface RackSubscriptionVariables {
   rackId?: string;
 }
 
+type GqlCtx = { user?: KeycloakUser; tenant?: string };
+
 @Resolver()
 export class TopologyResolver {
   constructor(
@@ -39,60 +42,148 @@ export class TopologyResolver {
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Rack)
-  createRack(@Args('input') input: CreateRackInput) {
+  createRack(
+    @Args('input') input: CreateRackInput,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    if (!siteAllowed(scope, input.siteId)) {
+      throw new ForbiddenException('Site hors périmètre tenant');
+    }
     return this.topologyService.createRack(input);
   }
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Rack)
-  updateRack(@Args('input') input: UpdateRackInput) {
+  async updateRack(
+    @Args('input') input: UpdateRackInput,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const existing = await this.topologyService.getRackWithDevices(input.id);
+    if (!siteAllowed(scope, existing.siteId)) {
+      throw new ForbiddenException('Rack hors périmètre tenant');
+    }
+    if (input.siteId && !siteAllowed(scope, input.siteId)) {
+      throw new ForbiddenException('Site cible hors périmètre tenant');
+    }
     return this.topologyService.updateRack(input);
   }
 
   @Roles('qinode-admin')
   @Mutation(() => Boolean)
-  deleteRack(@Args('id', { type: () => ID }) id: string) {
+  async deleteRack(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const existing = await this.topologyService.getRackWithDevices(id);
+    if (!siteAllowed(scope, existing.siteId)) {
+      throw new ForbiddenException('Rack hors périmètre tenant');
+    }
     return this.topologyService.deleteRack(id);
   }
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Device)
-  createDeviceAndMount(@Args('input') input: CreateDeviceInput) {
+  async createDeviceAndMount(
+    @Args('input') input: CreateDeviceInput,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const rack = await this.topologyService.getRackWithDevices(input.rackId);
+    if (!siteAllowed(scope, rack.siteId)) {
+      throw new ForbiddenException('Rack cible hors périmètre tenant');
+    }
     return this.topologyService.createDeviceAndMount(input);
   }
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Device)
-  updateDevice(@Args('input') input: UpdateDeviceInput) {
+  async updateDevice(
+    @Args('input') input: UpdateDeviceInput,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const site = await this.topologyService.deviceRackSite(input.id);
+    if (!siteAllowed(scope, site)) {
+      throw new ForbiddenException('Device hors périmètre tenant');
+    }
     return this.topologyService.updateDevice(input);
   }
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Device)
-  moveDevice(@Args('input') input: MoveDeviceInput) {
+  async moveDevice(
+    @Args('input') input: MoveDeviceInput,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const currentSite = await this.topologyService.deviceRackSite(input.deviceId);
+    if (!siteAllowed(scope, currentSite)) {
+      throw new ForbiddenException('Device hors périmètre tenant');
+    }
+    const target = await this.topologyService.getRackWithDevices(input.rackId);
+    if (!siteAllowed(scope, target.siteId)) {
+      throw new ForbiddenException('Rack cible hors périmètre tenant');
+    }
     return this.topologyService.moveDevice(input);
   }
 
   @Roles('qinode-ops', 'qinode-admin')
   @Mutation(() => Boolean)
-  unmountDevice(@Args('id', { type: () => ID }) id: string) {
+  async unmountDevice(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const site = await this.topologyService.deviceRackSite(id);
+    if (!siteAllowed(scope, site)) {
+      throw new ForbiddenException('Device hors périmètre tenant');
+    }
     return this.topologyService.unmountDevice(id);
   }
 
   @Query(() => Rack, { name: 'rack' })
-  getRack(@Args('id', { type: () => ID }) id: string) {
-    return this.topologyService.getRackWithDevices(id);
+  async getRack(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user?: KeycloakUser,
+    @Context() ctx?: GqlCtx,
+  ) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const rack = await this.topologyService.getRackWithDevices(id);
+    if (!siteAllowed(scope, rack.siteId)) {
+      throw new ForbiddenException('Rack hors périmètre tenant');
+    }
+    return rack;
   }
 
   @Query(() => [Rack], { name: 'racks' })
-  listRacks() {
-    return this.topologyService.listRacks();
+  async listRacks(@CurrentUser() user?: KeycloakUser, @Context() ctx?: GqlCtx) {
+    const scope = allowedSites(user, ctx?.tenant);
+    const racks = await this.topologyService.listRacks();
+    if (scope === 'all') return racks;
+    return racks.filter((rack) => siteAllowed(scope, rack.siteId));
   }
 
   @Subscription(() => Rack, {
     name: 'rackUpdated',
-    filter: (payload: TopologyEventPayloads[TopologyEvents.RACK_UPDATED], variables: RackSubscriptionVariables) =>
-      !variables.rackId || payload.rackUpdated.id === variables.rackId,
+    filter: (
+      payload: TopologyEventPayloads[TopologyEvents.RACK_UPDATED],
+      variables: RackSubscriptionVariables,
+      context: GqlCtx,
+    ) => {
+      const scope = allowedSites(context?.user, context?.tenant);
+      if (!siteAllowed(scope, payload.rackUpdated?.siteId)) return false;
+      return !variables.rackId || payload.rackUpdated.id === variables.rackId;
+    },
   })
   rackUpdated(@Args('rackId', { type: () => ID, nullable: true }) _rackId?: string) {
     return this.pubSub.asyncIterableIterator(TopologyEvents.RACK_UPDATED);
@@ -100,8 +191,15 @@ export class TopologyResolver {
 
   @Subscription(() => Device, {
     name: 'deviceMounted',
-    filter: (payload: TopologyEventPayloads[TopologyEvents.DEVICE_MOUNTED], variables: RackSubscriptionVariables) =>
-      !variables.rackId || payload.rackId === variables.rackId,
+    filter: (
+      payload: TopologyEventPayloads[TopologyEvents.DEVICE_MOUNTED],
+      variables: RackSubscriptionVariables,
+      context: GqlCtx,
+    ) => {
+      const scope = allowedSites(context?.user, context?.tenant);
+      if (!siteAllowed(scope, payload.rackSiteId)) return false;
+      return !variables.rackId || payload.rackId === variables.rackId;
+    },
   })
   deviceMounted(@Args('rackId', { type: () => ID, nullable: true }) _rackId?: string) {
     return this.pubSub.asyncIterableIterator(TopologyEvents.DEVICE_MOUNTED);
@@ -112,7 +210,12 @@ export class TopologyResolver {
     filter: (
       payload: TopologyEventPayloads[TopologyEvents.LIFECYCLE],
       variables: RackSubscriptionVariables,
-    ) => !variables.rackId || payload.topologyLifecycle.rackId === variables.rackId,
+      context: GqlCtx,
+    ) => {
+      const scope = allowedSites(context?.user, context?.tenant);
+      if (!siteAllowed(scope, payload.topologyLifecycle.rack?.siteId)) return false;
+      return !variables.rackId || payload.topologyLifecycle.rackId === variables.rackId;
+    },
   })
   topologyLifecycle(@Args('rackId', { type: () => ID, nullable: true }) _rackId?: string) {
     return this.pubSub.asyncIterableIterator(TopologyEvents.LIFECYCLE);

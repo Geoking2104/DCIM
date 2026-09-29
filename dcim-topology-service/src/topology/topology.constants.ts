@@ -14,7 +14,7 @@ export enum TopologyEvents {
 export interface TopologyEventPayloads {
   [event: string]: unknown;
   [TopologyEvents.RACK_UPDATED]: { rackUpdated: Rack };
-  [TopologyEvents.DEVICE_MOUNTED]: { deviceMounted: Device; rackId: string };
+  [TopologyEvents.DEVICE_MOUNTED]: { deviceMounted: Device; rackId: string; rackSiteId?: string | null };
   [TopologyEvents.LIFECYCLE]: { topologyLifecycle: TopologyLifecycleEvent };
 }
 

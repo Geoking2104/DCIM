@@ -21,6 +21,10 @@ un jeton portant le rôle `qinode-collector` (ou `qinode-admin`) dès que
 Keycloak est requis (`KEYCLOAK_OPTIONAL` différent de `true`) — client
 credentials documentés dans `web/keycloak/README-collector.md` (audience
 mapper `qinode-graphql` requis).
+
+Journalisation d'audit : les accès machine (autorisés/refusés, avec sujet et
+route), les échecs d'authentification et les connexions WebSocket sont tracés
+côté gateway (`tracing`) — aucune valeur de jeton n'est journalisée.
 Sans `KEYCLOAK_ISSUER`, auth off (principal anonyme, développement local).
 
 Périmètre tenant : fail-closed via `Principal::tenant_allowed` — hors

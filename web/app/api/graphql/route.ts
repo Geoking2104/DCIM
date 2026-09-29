@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (out.status >= 500) throw new Error(`status ${out.status}`);
     return new NextResponse(out.text, {
       status: out.status,
-      headers: { 'content-type': out.type, 'x-graphql-upstream': first }
+      headers: { 'cache-control': 'no-store', 'content-type': out.type, 'x-graphql-upstream': first }
     });
   } catch (e) {
     const second = fallback();
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
         const out = await proxy(second, req, body);
         return new NextResponse(out.text, {
           status: out.status,
-          headers: { 'content-type': out.type, 'x-graphql-upstream': second, 'x-graphql-fallback': '1' }
+          headers: { 'cache-control': 'no-store', 'content-type': out.type, 'x-graphql-upstream': second, 'x-graphql-fallback': '1' }
         });
       } catch {
         /* both down */
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
           }
         ]
       },
-      { status: 502 }
+      { status: 502, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

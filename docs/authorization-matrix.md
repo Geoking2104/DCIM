@@ -60,5 +60,11 @@ pour le header `x-tenant`).
 2. ~~Jeton de service pour les collecteurs~~ **Fait** : rôle `qinode-collector`
    exigé sur `/v1/telemetry/power` et `/v1/redfish/snapshot` (rôle + admin) ;
    client credentials documenté (`web/keycloak/README-collector.md`).
-3. Cloisonnement des caches, journaux et réponses d'API par tenant.
+3. Cloisonnement des caches, journaux et réponses d'API par tenant —
+   **partiel** : journalisation d'audit du gateway (accès machine autorisés /
+   refusés, échecs d'authentification, connexions WS) et
+   `Cache-Control: no-store` sur toutes les réponses d'API web (données,
+   session, proxy GraphQL) ; le scoping des routes REST web par tenant
+   nécessite un mapping ressource→tenant (à décider avec le modèle
+   d'authentification web).
 4. Filtrage tenant dans la récupération IA avant activation du copilote.

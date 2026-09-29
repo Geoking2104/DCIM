@@ -2069,6 +2069,7 @@ name = "qinode-ingest"
 version = "0.1.0"
 dependencies = [
  "libredfish",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "thiserror 2.0.21",

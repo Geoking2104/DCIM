@@ -56,6 +56,15 @@ impl ClickHouse {
             self.db
         ))
         .await?;
+        self.exec(&format!(
+            "CREATE TABLE IF NOT EXISTS {}.ingest_spool_receipts (
+                batch_id String,
+                record_count UInt32,
+                received_at DateTime DEFAULT now()
+            ) ENGINE = MergeTree ORDER BY batch_id",
+            self.db
+        ))
+        .await?;
         Ok(())
     }
 

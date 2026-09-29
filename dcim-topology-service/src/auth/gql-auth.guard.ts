@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { KeycloakService } from './keycloak.service';
+import { tenantAllowed } from './keycloak-user';
 
 @Injectable()
 export class GqlAuthGuard implements CanActivate {
@@ -17,8 +18,7 @@ export class GqlAuthGuard implements CanActivate {
     const tenantHdr = req.headers?.['x-tenant'] || req.headers?.['X-Tenant'];
     if (tenantHdr) {
       const t = String(tenantHdr);
-      const admin = ctx.user.roles.includes('qinode-admin');
-      if (!admin && ctx.user.tenants.length && !ctx.user.tenants.includes(t)) {
+      if (!tenantAllowed(ctx.user, t)) {
         throw new UnauthorizedException(`Tenant ${t} hors périmètre`);
       }
       ctx.tenant = t;

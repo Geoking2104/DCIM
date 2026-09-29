@@ -21,3 +21,16 @@ Docker : `docker compose up --build graph-db qinode-gateway`
 Le gateway crée les contraintes d'unicité `Rack.id` et `Device.id` au démarrage et refuse de démarrer si Neo4j est absent ou mal configuré. Le front Next appelle `/api/metrics/pue|wue` via `RUST_GATEWAY_URL`; le calcul TypeScript local n'est utilisé qu'en mode démonstration explicite.
 
 `/health/live` vérifie uniquement que le processus répond. `/health/ready` vérifie ClickHouse, Neo4j et la configuration Keycloak, et renvoie `503` tant que le gateway ne peut pas recevoir de trafic. Le Compose local active explicitement `KEYCLOAK_OPTIONAL=true`; cette option doit rester désactivée en production.
+
+## Spool durable (palier B)
+
+`qinode-ingest` embarque un spool JSONL append-only avec rejeu idempotent vers ClickHouse :
+
+```bash
+cargo run -p qinode-ingest --bin simulate_collector -- ./spool/data pdu-edge 30 PDU
+CLICKHOUSE_URL=http://localhost:8123 CLICKHOUSE_DB=dcim \
+  cargo run -p qinode-ingest --bin replay_spool -- ./spool/data pdu-edge
+```
+
+Sémantique (sans perte, doublons refusés par reçus de lot) et procédure de
+validation bout-en-bout : `docs/ingestion-durable.md`.

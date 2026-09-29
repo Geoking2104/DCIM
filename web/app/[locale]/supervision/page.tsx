@@ -10,7 +10,8 @@ const ROWS = [
   ['Historique', 'ClickHouse', 'dcim.power_metrics'],
   ['Alerte', 'Grafana + Prometheus', 'webhook /api/alerts'],
   ['Visualisation', 'Grafana', 'http://localhost:3001'],
-  ['BMS', 'BACnet / Modbus', '/fr/supervision/bms']
+  ['BMS', 'BACnet / Modbus', '/fr/supervision/bms'],
+  ['Onduleurs', 'PowerShield · cellules', '/fr/supervision/onduleurs']
 ];
 
 export default async function SupervisionPage({ params }: { params: Promise<{ locale: string }> }) {

@@ -7,7 +7,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use qinode_auth::{Keycloak, Principal};
+use qinode_auth::{ensure_role, Keycloak, Principal};
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
 use qinode_graph::{schema as graph_schema, AppSchema, Neo4jStore};
 use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
@@ -224,7 +224,9 @@ async fn redfish_snapshot(
     headers: HeaderMap,
     Json(target): Json<BmcTarget>,
 ) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
-    authenticate(&state, &headers).await?;
+    let principal = authenticate(&state, &headers).await?;
+    ensure_role(&principal, &["qinode-collector"])
+        .map_err(|error| (StatusCode::FORBIDDEN, error.to_string()))?;
     snapshot(target)
         .await
         .map(Json)
@@ -235,7 +237,9 @@ async fn insert_power(
     headers: HeaderMap,
     Json(row): Json<PowerSample>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    authenticate(&state, &headers).await?;
+    let principal = authenticate(&state, &headers).await?;
+    ensure_role(&principal, &["qinode-collector"])
+        .map_err(|error| (StatusCode::FORBIDDEN, error.to_string()))?;
     state
         .ch
         .insert_power(&row)

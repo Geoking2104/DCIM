@@ -6,7 +6,8 @@
       { "name": "qinode-operator", "description": "Exploitation : plateforme, modules, power, EED" },
       { "name": "qinode-energy", "description": "Chaîne électrique / power" },
       { "name": "qinode-compliance", "description": "Module EED / reporting UE" },
-      { "name": "qinode-viewer", "description": "Lecture plateforme et modules" }
+      { "name": "qinode-viewer", "description": "Lecture plateforme et modules" },
+      { "name": "qinode-collector", "description": "Collecteurs machine : ingestion télémétrie, lecture BMC (service account)" }
     ]
   },
   "clients": [
@@ -19,11 +20,20 @@
       "webOrigins": ["https://dcim-web.vercel.app"],
       "protocol": "openid-connect",
       "attributes": { "pkce.code.challenge.method": "S256" }
+    },
+    {
+      "clientId": "qinode-collector",
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect"
     }
   ],
   "notes": [
     "Créer les 5 rôles realm ci-dessus.",
     "Mapper realm roles dans le token : Client scopes → roles → Add mapper → User Realm Role (add to access token).",
-    "Assigner les rôles aux utilisateurs ou groupes (ops, rse, energy)."
+    "Assigner les rôles aux utilisateurs ou groupes (ops, rse, energy).",
+    "Client qinode-collector : service account (client credentials), rôle client qinode-collector, Audience mapper ajoutant qinode-graphql dans aud — voir README-collector.md."
   ]
 }

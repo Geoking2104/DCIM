@@ -26,6 +26,8 @@ pub enum AuthError {
     Configuration(String),
     #[error("tenant hors perimetre: {0}")]
     Tenant(String),
+    #[error("role requise: {0}")]
+    Role(String),
 }
 
 /// Identité minimale propagée dans le contexte GraphQL du gateway.
@@ -66,6 +68,24 @@ pub fn ensure_tenant_allowed(principal: &Principal, tenant: &str) -> Result<(), 
         Ok(())
     } else {
         Err(AuthError::Tenant(tenant.to_string()))
+    }
+}
+
+/// Exige au moins un des rôles listés. Hors développement local (principal
+/// anonyme, `KEYCLOAK_OPTIONAL=true`) et administrateur, l'absence de rôle
+/// autorisé est refusée (fail-closed). Utilisé par les points d'entrée machine
+/// (collecteurs : `/v1/telemetry/*`, `/v1/redfish/*`).
+pub fn ensure_role(principal: &Principal, allowed: &[&str]) -> Result<(), AuthError> {
+    if principal.anonymous || principal.is_admin() {
+        return Ok(());
+    }
+    let permitted = allowed
+        .iter()
+        .any(|candidate| principal.roles.iter().any(|role| role == candidate));
+    if permitted {
+        Ok(())
+    } else {
+        Err(AuthError::Role(allowed.join(", ")))
     }
 }
 
@@ -202,8 +222,14 @@ pub fn roles_from_claims(claims: &Value) -> Vec<String> {
     let mut out = BTreeSet::new();
     push_qinode_roles(&mut out, claims["realm_access"]["roles"].as_array());
     let client_id = std::env::var("KEYCLOAK_CLIENT_ID").unwrap_or_else(|_| "qinode-web".into());
+    let collector_client =
+        std::env::var("KEYCLOAK_COLLECTOR_CLIENT").unwrap_or_else(|_| "qinode-collector".into());
     if let Some(clients) = claims["resource_access"].as_object() {
-        for key in [client_id.as_str(), "qinode-graphql"] {
+        for key in [
+            client_id.as_str(),
+            "qinode-graphql",
+            collector_client.as_str(),
+        ] {
             if let Some(entry) = clients.get(key) {
                 push_qinode_roles(&mut out, entry["roles"].as_array());
             }
@@ -515,5 +541,58 @@ mod tests {
         // Fail-closed : sans tenants listés, aucun tenant n'est accessible.
         assert!(!bare_user.tenant_allowed("acme"));
         assert!(ensure_tenant_allowed(&tenant_user, "beta").is_err());
+    }
+
+    #[test]
+    fn service_roles_are_collected_from_the_collector_client() {
+        let previous = std::env::var("KEYCLOAK_COLLECTOR_CLIENT").ok();
+        std::env::set_var("KEYCLOAK_COLLECTOR_CLIENT", "qinode-collector");
+        let claims = serde_json::json!({
+            "resource_access": {
+                "qinode-collector": { "roles": ["qinode-collector"] },
+                "autre-client": { "roles": ["qinode-admin"] }
+            }
+        });
+        // Les rôles des clients de premier rang sont repris ; ceux des autres
+        // clients ne le sont pas.
+        let roles = roles_from_claims(&claims);
+        assert!(roles.contains(&"qinode-collector".to_string()));
+        assert!(!roles.contains(&"qinode-admin".to_string()));
+        match previous {
+            Some(value) => std::env::set_var("KEYCLOAK_COLLECTOR_CLIENT", value),
+            None => std::env::remove_var("KEYCLOAK_COLLECTOR_CLIENT"),
+        }
+    }
+
+    #[test]
+    fn machine_endpoints_require_the_collector_role_fail_closed() {
+        let collector = Principal {
+            subject: "svc-collector".into(),
+            tenants: Vec::new(),
+            roles: vec!["qinode-collector".into()],
+            anonymous: false,
+        };
+        let viewer = Principal {
+            subject: "u".into(),
+            tenants: Vec::new(),
+            roles: vec!["qinode-viewer".into()],
+            anonymous: false,
+        };
+        // Développement local explicite : accès conservé.
+        assert!(ensure_role(&Principal::anonymous(), &["qinode-collector"]).is_ok());
+        // Admin : passe.
+        assert!(ensure_role(
+            &Principal {
+                subject: "a".into(),
+                tenants: Vec::new(),
+                roles: vec!["qinode-admin".into()],
+                anonymous: false,
+            },
+            &["qinode-collector"]
+        )
+        .is_ok());
+        assert!(ensure_role(&collector, &["qinode-collector"]).is_ok());
+        // Sans rôle autorisé, fail-closed.
+        assert!(ensure_role(&viewer, &["qinode-collector"]).is_err());
     }
 }

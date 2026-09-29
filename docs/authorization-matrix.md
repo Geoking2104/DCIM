@@ -8,8 +8,8 @@ couvre chacune. Règle commune : **fail-closed** — hors `KEYCLOAK_OPTIONAL=tru
 | --- | --- | --- | --- |
 | HTTP GraphQL (`POST /graphql`, gateway Rust) | Bearer vérifié (JWKS, iss, aud) ; `Principal` injecté dans le contexte | **En place** | `qinode-auth/tests/negative_auth.rs` |
 | WebSocket (`/graphql/ws`, gateway Rust) | Vérifié à `connection_init` ; `Principal` injecté | **En place** | `negative_auth.rs` + handler |
-| Écritures télémétrie (`POST /v1/telemetry/power`) | Bearer requis dès que Keycloak est requis | **En place** | handler `authenticate` |
-| Lecture BMC (`POST /v1/redfish/snapshot`) | Bearer requis dès que Keycloak est requis | **En place** | handler `authenticate` |
+| Écritures télémétrie (`POST /v1/telemetry/power`) | Bearer + rôle `qinode-collector` (ou admin) dès que Keycloak est requis | **En place** | `ensure_role` (qinode-auth) |
+| Lecture BMC (`POST /v1/redfish/snapshot`) | Bearer + rôle `qinode-collector` (ou admin) dès que Keycloak est requis | **En place** | `ensure_role` (qinode-auth) |
 | Calculs métriques (`POST /v1/metrics/{pue,wue}`) | Non protégé (entrées sans donnée de site) | À décider | — |
 | GraphQL Nest (lecture/mutations topologie) | `GqlAuthGuard` + `RolesGuard` + contrôle `x-tenant` | **En place (durci)** | `tenant-scope.test.cjs` |
 | Autorisation **par resolver** (Rust & Nest) | ABAC par requête/mutation : périmètre de sites par tenant (`TENANT_CATALOG`), écriture `qinode-ops`, suppression `qinode-admin`, subscriptions filtrées | **En place** | `qinode-graph` (tests `auth_tests`), `resolver-scope.test.cjs`, `tenant-scope.test.cjs` |
@@ -57,7 +57,8 @@ pour le header `x-tenant`).
 1. ~~Autorisation par resolver~~ **Fait** : périmètre par resolver côté Rust et
    Nest (voir « Autorisation par resolver » ci-dessus), avec tests négatifs
    inter-tenants.
-2. Jeton de service pour les collecteurs (`/v1/telemetry/*`) : client
-   credentials Keycloak + scopes dédiés.
+2. ~~Jeton de service pour les collecteurs~~ **Fait** : rôle `qinode-collector`
+   exigé sur `/v1/telemetry/power` et `/v1/redfish/snapshot` (rôle + admin) ;
+   client credentials documenté (`web/keycloak/README-collector.md`).
 3. Cloisonnement des caches, journaux et réponses d'API par tenant.
 4. Filtrage tenant dans la récupération IA avant activation du copilote.

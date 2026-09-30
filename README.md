@@ -42,15 +42,15 @@ flowchart LR
     F --> J[Local AIOps and RAG]
 ```
 
-The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The tracked implementation includes a bilingual Next.js operations UI, a NestJS GraphQL service for rack, device, and network topology, initial Keycloak integration, a Rust gateway and domain crates, and a local monitoring overlay. Several UI paths still rely on demo or in-memory fallback data. Durable regulatory evidence, production telemetry ingestion, complete tenant isolation, CDU workflows, and the local AI engine remain incomplete.
+The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ollama through `docker-compose.yml`. The tracked implementation includes a bilingual Next.js operations UI, a NestJS GraphQL service for rack, device, and network topology, initial Keycloak integration, a Rust gateway and domain crates, and a local monitoring overlay. Several UI paths still rely on demo or in-memory fallback data. Durable regulatory evidence, on-site hardware validation for telemetry ingestion, per-tenant scoping of the remaining REST/web routes, and the local AI engine remain incomplete.
 
 ## Current implementation status
 
 | Area | Available today | Main gap before production |
 | --- | --- | --- |
 | Web application | Bilingual UI, topology and network views, power and sustainability metrics, EED preview, alert inbox, explicit live/demo data policy | Replace remaining demonstrations with validated production connectors and operational data paths |
-| Topology API | Neo4j-backed rack/device/network GraphQL operations, subscriptions, Keycloak groundwork | Expand automated tests and enforce authorization on every query, mutation, and subscription |
-| Rust services | PUE/WUE core, HTTP gateway, ClickHouse and Redfish foundations, Neo4j-backed GraphQL topology | Complete tenant authorization, JWKS hardening, and production-grade multi-pod subscriptions |
+| Topology API | Neo4j-backed rack/device/network GraphQL operations, subscriptions, resolver-level authorization, Keycloak groundwork | Migrate reads to the canonical property convention after Nest retirement; keep expanding automated tests |
+| Rust services | PUE/WUE core, HTTP gateway, ClickHouse and Redfish foundations, Neo4j-backed GraphQL topology, resolver authorization, hardened JWKS, collector service tokens | Production-grade multi-pod subscriptions (durable bus) and canonical-property cleanup after the parallel-read period |
 | Telemetry and operations | Docker Compose, ClickHouse, Redpanda, Prometheus, Grafana, Telegraf and BMS read/write interlock examples | Validate end-to-end ingestion, persistence, replay, alerting, backups, and deployment hardening |
 | Compliance and evidence | Requirements, regulatory baseline, metric previews, and EED demonstration UI | Implement versioned rules, quality gates, immutable snapshots, review workflow, exports, receipts, and official-label reconciliation |
 
@@ -60,8 +60,8 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 | --- | --- | --- | --- |
 | **P0** | **Complete (27 Sep 2026)** | Restore the delivery baseline | Web, NestJS, and Rust builds pass; reproducible lockfiles are tracked; GitHub Actions runs build, lint, test, and Rust format/clippy checks on every pull request |
 | **P0** | **Complete (27 Sep 2026)** | Security and dependency maintenance | Next.js and the npm dependency chains are upgraded with zero high-severity npm audit findings; Dependabot, dependency review, and secret scanning are configured; supported runtimes are documented |
-| **P1** | **In progress** | Durable operational data path | Explicit demo mode, fail-visible sources, and Neo4j-backed Rust topology are implemented; validate ClickHouse retention/replay and complete Redfish, SNMP, BACnet, and Modbus ingestion |
-| **P1** | **Next** | Identity and tenant isolation | Complete Keycloak/JWKS integration and enforce RBAC/ABAC and tenant boundaries across HTTP, GraphQL, WebSockets, exports, caches, logs, and AI retrieval, with negative tests |
+| **P1** | **In progress** | Durable operational data path | Explicit demo mode, fail-visible sources, Neo4j-backed Rust topology and a durable spool with idempotent replay (validated end-to-end on a real ClickHouse) are implemented; remaining: on-site hardware validation and retention policy |
+| **P1** | **In progress** | Identity and tenant isolation | RBAC/ABAC and tenant boundaries enforced on HTTP, GraphQL, subscriptions and machine routes, with negative tests, audit logging and collector service tokens; remaining: tenant scoping of the REST/web data routes and AI-retrieval filtering before the copilot activates |
 | **P1** | **Next** | Regulatory evidence engine | Ship effective-dated PUE/WUE/ERF rules, data-quality gates, tenant allocation, locked evidence snapshots, four-eyes review, EU/national exports, submission receipts, and official-label reconciliation |
 | **P2** | **In progress** | Production operations | Liveness/readiness probes, hardened containers, an HA gateway manifest, initial SLOs, and backup/restore policy are implemented; migrations, TLS automation, tracing, proven restores, retention, and full DR exercises remain |
 | **P2** | **Later** | Advanced product capabilities | Connect the WebGL digital twin to live topology and telemetry, complete CDU/liquid-cooling and heat-reuse workflows, then validate predictive AIOps and the air-gapped copilot with human controls |
@@ -92,6 +92,8 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
+
+Docker-free local full-stack (WSL2, no Docker): see [`ops/local/README.md`](ops/local/README.md).
 
 ## Metrics and supervision
 

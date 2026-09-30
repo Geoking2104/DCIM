@@ -67,4 +67,4 @@ pour le header `x-tenant`).
    session, proxy GraphQL) ; le scoping des routes REST web par tenant
    nécessite un mapping ressource→tenant (à décider avec le modèle
    d'authentification web).
-4. Filtrage tenant dans la récupération IA avant activation du copilote.
+4. Filtrage tenant dans la récupération IA avant activation du copilote — infra pré-déclarée (`vector-db` Qdrant et `ai-engine` Ollama dans `docker-compose.yml`), code copilote à venir.

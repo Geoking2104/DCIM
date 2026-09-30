@@ -86,6 +86,8 @@ voir [windows/README.md](windows/README.md).
 ```bash
 bash ops/local/smoke-nest.sh                 # PORT=4009 pour un port de test
 bash ops/local/smoke-gateway.sh              # LISTEN=127.0.0.1:8089 idem
+# Subscription WebSocket du gateway (createRack → événement rackUpdated attendu) :
+cd ops/local/mock-gql && npm install && node smoke-gateway-ws.mjs
 ```
 
 À lancer depuis **Git Bash** (Windows) ou WSL ; `NEO4J_URI`, `PORT`, `LISTEN`,

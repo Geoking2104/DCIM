@@ -18,7 +18,7 @@
   "dependencies": {
     "@apollo/client": "^3.11.8",
     "@phosphor-icons/react": "^2.1.10",
-    "date-fns": "^3.6.0",
+    "date-fns": "^4.4.0",
     "graphql": "^16.9.0",
     "graphql-ws": "^5.16.0",
     "next": "16.3.6",
@@ -29,7 +29,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
-    "@types/node": "^20.14.12",
+    "@types/node": "^26.6.2",
     "@types/react": "^19.2.0",
     "@types/three": "^0.186.0",
     "autoprefixer": "^10.4.20",

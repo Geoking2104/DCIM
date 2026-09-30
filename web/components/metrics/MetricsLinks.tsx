@@ -4,6 +4,7 @@ export const METRIC_LINKS = (locale: string) => [
   { href: `/${locale}/metriques/optimiser`, label: 'Optimiser', path: '/metriques/optimiser' },
   { href: `/${locale}/metriques/predictif`, label: 'Prédictif', path: '/metriques/predictif' },
   { href: `/${locale}/supervision/bms`, label: 'BMS', path: '/supervision/bms' },
+  { href: `/${locale}/supervision/onduleurs`, label: 'Onduleurs', path: '/supervision/onduleurs' },
   { href: `/${locale}/outils/pue`, label: 'PUE', path: '/outils/pue' },
   { href: `/${locale}/power`, label: 'Puissance live', path: '/power' },
   { href: `/${locale}/eed`, label: 'Dossier EED', path: '/eed' },

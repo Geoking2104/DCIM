@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         point: body.point || null,
         value: body.value ?? null
       },
-      { status: 403 }
+      { status: 403, headers: { 'Cache-Control': 'no-store' } }
     );
   }
   return NextResponse.json({
@@ -23,5 +23,5 @@ export async function POST(req: NextRequest) {
     reason: 'Connecteur BMS non implémenté — journal seulement.',
     point: body.point,
     value: body.value
-  });
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

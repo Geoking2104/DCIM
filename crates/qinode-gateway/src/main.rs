@@ -2,12 +2,12 @@ use async_graphql::{http::ALL_WEBSOCKET_PROTOCOLS, Data};
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
     extract::{State, WebSocketUpgrade},
-    http::{header::AUTHORIZATION, StatusCode},
+    http::{header::AUTHORIZATION, HeaderMap, StatusCode},
     response::Response,
     routing::{get, post},
     Json, Router,
 };
-use qinode_auth::Keycloak;
+use qinode_auth::{ensure_role, Keycloak, Principal};
 use qinode_core::{pue, wue, MetricPreview, PueInput, WueInput};
 use qinode_graph::{schema as graph_schema, AppSchema, Neo4jStore};
 use qinode_ingest::{snapshot, BmcTarget, RedfishSnapshot};
@@ -47,6 +47,21 @@ struct Dependencies {
 struct Readiness {
     status: &'static str,
     dependencies: Dependencies,
+}
+
+/// Authentification commune : quand Keycloak est requis, tout accès hors
+/// `/health*` doit porter un jeton ; sinon (dev local) le principal est anonyme.
+async fn authenticate(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> Result<Principal, (StatusCode, String)> {
+    let auth = headers
+        .get(AUTHORIZATION)
+        .and_then(|value| value.to_str().ok());
+    state.kc.authenticate(auth).await.map_err(|error| {
+        tracing::warn!(%error, "authentification refusée");
+        (StatusCode::UNAUTHORIZED, error.to_string())
+    })
 }
 
 #[tokio::main]
@@ -110,10 +125,17 @@ async fn graphql_ws_handler(
                     let kc = kc.clone();
                     async move {
                         let auth = value.get("authorization").and_then(|v| v.as_str());
-                        kc.verify_bearer(auth)
+                        let principal = kc
+                            .authenticate(auth)
                             .await
                             .map_err(|e| async_graphql::Error::new(e.to_string()))?;
-                        Ok(Data::default())
+                        tracing::info!(
+                            subject = %principal.subject,
+                            "ws : connexion authentifiée"
+                        );
+                        let mut data = Data::default();
+                        data.insert(principal);
+                        Ok(data)
                     }
                 })
                 .serve()
@@ -177,16 +199,18 @@ async fn ready(State(state): State<AppState>) -> (StatusCode, Json<Readiness>) {
 
 async fn graphql_handler(
     State(state): State<AppState>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     req: GraphQLRequest,
 ) -> Result<GraphQLResponse, (StatusCode, String)> {
-    let auth = headers.get(AUTHORIZATION).and_then(|v| v.to_str().ok());
-    state
-        .kc
-        .verify_bearer(auth)
-        .await
-        .map_err(|e| (StatusCode::UNAUTHORIZED, e.to_string()))?;
-    Ok(state.gql.execute(req.into_inner()).await.into())
+    let principal = authenticate(&state, &headers).await?;
+    tracing::debug!(
+        subject = %principal.subject,
+        tenants = ?principal.tenants,
+        "graphql : requête authentifiée"
+    );
+    let mut request = req.into_inner();
+    request = request.data(principal);
+    Ok(state.gql.execute(request).await.into())
 }
 
 async fn calc_pue(
@@ -204,8 +228,21 @@ async fn calc_wue(
         .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))
 }
 async fn redfish_snapshot(
+    State(state): State<AppState>,
+    headers: HeaderMap,
     Json(target): Json<BmcTarget>,
 ) -> Result<Json<RedfishSnapshot>, (StatusCode, String)> {
+    let principal = authenticate(&state, &headers).await?;
+    if let Err(error) = ensure_role(&principal, &["qinode-collector"]) {
+        tracing::warn!(
+            subject = %principal.subject,
+            route = "redfish/snapshot",
+            %error,
+            "accès machine refusé"
+        );
+        return Err((StatusCode::FORBIDDEN, error.to_string()));
+    }
+    tracing::info!(subject = %principal.subject, route = "redfish/snapshot", "accès machine autorisé");
     snapshot(target)
         .await
         .map(Json)
@@ -213,8 +250,20 @@ async fn redfish_snapshot(
 }
 async fn insert_power(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(row): Json<PowerSample>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let principal = authenticate(&state, &headers).await?;
+    if let Err(error) = ensure_role(&principal, &["qinode-collector"]) {
+        tracing::warn!(
+            subject = %principal.subject,
+            route = "telemetry/power",
+            %error,
+            "accès machine refusé"
+        );
+        return Err((StatusCode::FORBIDDEN, error.to_string()));
+    }
+    tracing::info!(subject = %principal.subject, route = "telemetry/power", "accès machine autorisé");
     state
         .ch
         .insert_power(&row)

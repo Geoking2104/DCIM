@@ -1,5 +1,9 @@
-//! Palier B : découverte BMC via [libredfish](https://crates.io/crates/libredfish).
+//! Palier B : découverte BMC via [libredfish](https://crates.io/crates/libredfish)
+//! et spool durable de télémétrie avec rejeu idempotent.
 //! Lecture seule (pas de reset / power control exposé).
+
+pub mod clickhouse_sink;
+pub mod spool;
 
 use libredfish::{Endpoint, RedfishClientPool};
 use serde::{Deserialize, Serialize};
@@ -9,6 +13,12 @@ use thiserror::Error;
 pub enum IngestError {
     #[error("redfish: {0}")]
     Redfish(String),
+    #[error("io: {0}")]
+    Io(String),
+    #[error("spool occupe: {0}")]
+    SpoolBusy(String),
+    #[error("clickhouse: {0}")]
+    ClickHouse(String),
 }
 
 #[derive(Debug, Clone, Deserialize)]

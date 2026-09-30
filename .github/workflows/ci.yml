@@ -160,6 +160,8 @@ jobs:
           echo "$QUERY"
           echo "$QUERY" | grep -q 'CI-SMOKE-RUST' || { echo "lecture racks a echoue"; kill "$GW_PID" 2>/dev/null || true; exit 1; }
           kill "$GW_PID" 2>/dev/null || true
+      - name: Smoke boot (gateway WebSocket subscription)
+        run: bash "$GITHUB_WORKSPACE/ops/local/smoke-gateway-ws.sh"
 
   deployment-smoke:
     name: Container readiness

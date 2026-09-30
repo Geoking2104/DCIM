@@ -1,7 +1,7 @@
 import { ApolloClient, InMemoryCache, HttpLink, ApolloLink, split } from '@apollo/client';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { onError } from '@apollo/client/link/error';
+import { ErrorLink } from '@apollo/client/link/error';
 import { createClient } from 'graphql-ws';
 import { classifyGraphQLError } from './graphqlErrors';
 import { setWsPhase } from './wsLifecycle';
@@ -16,11 +16,8 @@ export function graphqlWsUrl(): string {
   return GRAPHQL_DIRECT.replace(/^http/, 'ws');
 }
 
-const errorLink = onError(({ graphQLErrors, networkError, operation }) => {
-  const classified = classifyGraphQLError(
-    { graphQLErrors, networkError, message: networkError?.message || graphQLErrors?.[0]?.message || 'GraphQL error' },
-    GRAPHQL_DIRECT
-  );
+const errorLink = new ErrorLink(({ error, operation }) => {
+  const classified = classifyGraphQLError(error, GRAPHQL_DIRECT);
   if (typeof window !== 'undefined') {
     console.warn(`[GraphQL ${classified.kind}] ${operation.operationName}: ${classified.detail}`);
   }
@@ -83,7 +80,7 @@ function makeClient() {
   });
 }
 
-let client: ApolloClient<unknown> | null = null;
+let client: ApolloClient | null = null;
 export function getClient() {
   if (typeof window === 'undefined') return makeClient();
   if (!client) client = makeClient();

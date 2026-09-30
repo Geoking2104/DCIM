@@ -1,5 +1,6 @@
 'use client';
-import { gql, useLazyQuery, useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { useLazyQuery, useQuery } from '@apollo/client/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
@@ -34,16 +35,16 @@ export default function NetworkGraph({ locale }: { locale: string }) {
   const params = useSearchParams();
   const focusA = params.get('a') || undefined;
   const focusB = params.get('b') || undefined;
-  const { data: racksData } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
+  const { data: racksData } = useQuery<Record<string, any>>(RACKS, { errorPolicy: 'all', ssr: false });
   const racks = racksData?.racks || [];
   const [rackId, setRackId] = useState('');
   const [isolate, setIsolate] = useState(Boolean(focusA));
   const [origin, setOrigin] = useState<string | undefined>(focusA);
-  const [load, { data, loading }] = useLazyQuery(LINKS, { fetchPolicy: 'no-cache' });
-  const [impact, { data: impactData }] = useLazyQuery(IMPACT, { fetchPolicy: 'no-cache' });
+  const [load, { data, loading }] = useLazyQuery<Record<string, any>>(LINKS, { fetchPolicy: 'no-cache' });
+  const [impact, { data: impactData }] = useLazyQuery<Record<string, any>>(IMPACT, { fetchPolicy: 'no-cache' });
   const live = Boolean(data?.networkLinks);
   const links = useMemo<LinkN[]>(
-    () => (live ? data.networkLinks : DEMO_MODE_ENABLED ? DEMO : []),
+    () => (live ? (data?.networkLinks ?? []) : DEMO_MODE_ENABLED ? DEMO : []),
     [data, live]
   );
   const focused = useMemo(() => {

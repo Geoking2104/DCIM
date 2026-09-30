@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
 import { GET_SITE_EED_COMPLIANCE } from '@/lib/eedQueries';
 import { DEMO_EED, EedMetricsData, EUEnergyLabel } from '@/lib/eedDemo';
 import EedComplianceDashboard from './EedComplianceDashboard';
@@ -13,7 +13,7 @@ export default function EedComplianceContainer({
   siteId?: string;
   siteName?: string;
 }) {
-  const { data, error } = useQuery(GET_SITE_EED_COMPLIANCE, {
+  const { data, error } = useQuery<Record<string, any>>(GET_SITE_EED_COMPLIANCE, {
     variables: { siteId, period: 'ANNUAL' },
     errorPolicy: 'all',
     fetchPolicy: 'no-cache',

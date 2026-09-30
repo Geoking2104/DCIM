@@ -1,5 +1,6 @@
 'use client';
-import { gql, useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
 import { useMemo, useState } from 'react';
 
 const DECISIONS = gql`
@@ -17,7 +18,7 @@ function since(period: Period) {
 }
 
 export default function PatchJournal({ locale }: { locale: string }) {
-  const { data, loading, error, refetch } = useQuery(DECISIONS, {
+  const { data, loading, error, refetch } = useQuery<Record<string, any>>(DECISIONS, {
     errorPolicy: 'all',
     fetchPolicy: 'no-cache',
     ssr: false

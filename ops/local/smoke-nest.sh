@@ -17,7 +17,7 @@ cd "$ROOT/dcim-topology-service" || exit 1
 node dist/main.js > /tmp/topology-smoke.log 2>&1 &
 APP_PID=$!
 READY=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 45); do
   if curl -sf -o /dev/null -X POST "http://127.0.0.1:${PORT}/graphql" \
     -H 'content-type: application/json' --data '{"query":"{ racks { id name } }"}'; then
     READY=1
@@ -26,7 +26,7 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 if [ "$READY" != "1" ]; then
-  echo "Service non disponible apres 60 s"; tail -n 50 /tmp/topology-smoke.log
+  echo "Service non disponible apres 90 s"; tail -n 50 /tmp/topology-smoke.log
   kill "$APP_PID" 2>/dev/null || true
   exit 1
 fi

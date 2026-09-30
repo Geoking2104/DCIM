@@ -1,4 +1,4 @@
-# Qinode — Rust d’abord, bascule progressive
+# Qinode - Rust d'abord, bascule progressive
 
 Le front Next.js (`web/`) reste. Le cœur métier bascule vers Rust. Nest (`dcim-topology-service`) reste disponible en parallèle pendant la validation du palier C.
 
@@ -22,30 +22,31 @@ Capteurs → qinode-ingest (Rust) → ClickHouse + graphe
 
 ## Paliers
 
-### A — Sidecar (maintenant)
+### A - Sidecar (maintenant)
 - `crates/qinode-gateway` :8088
 - `POST /v1/metrics/pue` `POST /v1/metrics/wue`
 - Nest inchangé. Front peut pointer `NEXT_PUBLIC_RUST_URL`
 - Critère : `curl :8088/health` + tests `cargo test`
 
-### B — Télémétrie
+### B - Télémétrie
 - Writer ClickHouse Rust (chaîne compteur → prise)
 - Même schéma que `web/app/api/clickhouse`
 - Critère : `/fr/power` lit les deux écrivains sans casser
 
-### C — Topologie
-- `async-graphql` + Neo4j (`neo4rs`) — persistance rack/device livrée
+### C - Topologie
+- `async-graphql` + Neo4j (`neo4rs`) - persistance rack/device livrée
 - JWKS Keycloak déjà documenté (`aud=qinode-graphql`)
-- Proxy Next `/api/graphql` bascule d’URL
+- Proxy Next `/api/graphql` bascule d'URL
 - Test d'intégration CI : rack et device relus après reconstruction du schéma GraphQL
-- Prochain critère : isolation tenant, puis Nest en lecture seule 30 jours avant arrêt
+- Isolation tenant livrée (requêtes, mutations, subscriptions ; ponts d'interopérabilité camelCase/snake_case validés dans les deux sens) ; prochain critère : période de lecture parallèle 30 jours, puis Nest en lecture seule avant arrêt
 
-### D — Bord salle
+### D - Bord salle
 - Collecteur Rust (Modbus / Redfish), pas de Node en salle
 - Air-gap : binaire unique, pas de runtime JS
 
-### E — Copilote local
+### E - Copilote local
 - Inference on-prem (llama.cpp / bindings), hors Vercel
+- Prérequis avant activation : filtrage tenant de la récupération IA (voir `docs/authorization-matrix.md`)
 
 ## Déploiement
 

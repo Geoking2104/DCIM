@@ -1,0 +1,12 @@
+# cargo-audit — avis acceptés, revus le 2026-09-30.
+# Les quatre entrées sont des avis « unmaintained » (aucune vulnérabilité) et
+# proviennent tous de la chaîne de dépendances de neo4rs 0.8.0
+# (via neo4rs -> paste / backoff -> instant / rustls-pemfile).
+# À retirer dès que neo4rs migre ses dépendances amont.
+[advisories]
+ignore = [
+  "RUSTSEC-2025-0012", # backoff 0.4.0 — unmaintained (via neo4rs)
+  "RUSTSEC-2024-0384", # instant 0.1.13 — unmaintained (via backoff/neo4rs)
+  "RUSTSEC-2024-0436", # paste 1.0.15 — unmaintained (via neo4rs)
+  "RUSTSEC-2025-0134", # rustls-pemfile 2.2.0 — unmaintained (via neo4rs)
+]

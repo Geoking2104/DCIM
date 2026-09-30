@@ -1,5 +1,6 @@
 'use client';
-import { useQuery, useSubscription, gql } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { useQuery, useSubscription } from '@apollo/client/react';
 import { useMemo, useState } from 'react';
 import { classifyGraphQLError } from '@/lib/graphqlErrors';
 import { GRAPHQL_URL } from '@/lib/graphql';
@@ -24,13 +25,13 @@ const mock = [
 
 export default function LiveRacks(){
   const [lastEvent, setLastEvent] = useState<string>();
-  const { data, error, loading, refetch } = useQuery(RACKS_QUERY, {
+  const { data, error, loading, refetch } = useQuery<Record<string, any>>(RACKS_QUERY, {
     pollInterval: 30000,
     errorPolicy: 'all',
     fetchPolicy: 'no-cache',
     ssr: false
   });
-  useSubscription(TOPOLOGY_LIFECYCLE, {
+  useSubscription<Record<string, any>>(TOPOLOGY_LIFECYCLE, {
     onData: ({ data: sub }) => {
       const ev = sub.data?.topologyLifecycle;
       if (ev?.kind) setLastEvent(`${ev.kind} ${ev.deviceId || ev.rackId || ''}`.trim());
@@ -45,7 +46,7 @@ export default function LiveRacks(){
 
   const live = Boolean(data?.racks);
   const racks = live
-    ? data.racks.map((r: any) => ({
+    ? (data?.racks ?? []).map((r: any) => ({
         ...r,
         status: (r.devices?.length || 0) > 0 ? 'Active' : 'Empty',
         powerLoad: r.devices?.length || 0,

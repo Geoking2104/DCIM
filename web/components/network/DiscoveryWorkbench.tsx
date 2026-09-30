@@ -1,5 +1,6 @@
 'use client';
-import { gql, useMutation, useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { useEffect, useMemo, useState } from 'react';
 import { DISCOVERY_TOOLS } from '@/lib/discoveryTools';
 import { readLastRack, writeLastRack } from '@/lib/lastRack';
@@ -22,16 +23,16 @@ const RESOLVE = gql`
 const SAMPLE = 'aDevice,aPort,bDevice,bPort\ntor-c05,Eth1/2,srv-gpu-12,nic0\n';
 
 export default function DiscoveryWorkbench({ locale }: { locale: string }) {
-  const { data } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
-  const { data: log, refetch: refetchLog } = useQuery(DECISIONS, { errorPolicy: 'all', ssr: false });
+  const { data } = useQuery<Record<string, any>>(RACKS, { errorPolicy: 'all', ssr: false });
+  const { data: log, refetch: refetchLog } = useQuery<Record<string, any>>(DECISIONS, { errorPolicy: 'all', ssr: false });
   const racks = data?.racks || [];
   const [rackId, setRackId] = useState('');
   const [tool, setTool] = useState<(typeof DISCOVERY_TOOLS)[number]['id']>('lldp');
   const [csv, setCsv] = useState(SAMPLE);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const [run, { data: out, loading, error }] = useMutation(DISCOVER);
-  const [imp, { data: imported, loading: importing, error: importErr }] = useMutation(IMPORT);
-  const [resolve, { loading: resolving, error: resolveErr }] = useMutation(RESOLVE);
+  const [run, { data: out, loading, error }] = useMutation<Record<string, any>>(DISCOVER);
+  const [imp, { data: imported, loading: importing, error: importErr }] = useMutation<Record<string, any>>(IMPORT);
+  const [resolve, { loading: resolving, error: resolveErr }] = useMutation<Record<string, any>>(RESOLVE);
   const spec = DISCOVERY_TOOLS.find((t) => t.id === tool)!;
   const report = imported?.importPatches || out?.discoverNetwork;
   const conflicts = useMemo(

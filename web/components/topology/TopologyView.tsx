@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { gql, useQuery, useSubscription } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { useQuery, useSubscription } from '@apollo/client/react';
 import { TOPOLOGY_LIFECYCLE } from '@/lib/topologySubscriptions';
 import GraphQLStatus from '@/components/GraphQLStatus';
 import { classifyGraphQLError } from '@/lib/graphqlErrors';
@@ -44,12 +45,12 @@ export default function TopologyView() {
   const [selRack, setSelRack] = useState<string>();
   const [selDev, setSelDev] = useState<string>();
   const [lastEvent, setLastEvent] = useState<string>();
-  const { data, error, loading, refetch } = useQuery(RACKS, {
+  const { data, error, loading, refetch } = useQuery<Record<string, any>>(RACKS, {
     errorPolicy: 'all',
     fetchPolicy: 'no-cache',
     ssr: false
   });
-  useSubscription(TOPOLOGY_LIFECYCLE, {
+  useSubscription<Record<string, any>>(TOPOLOGY_LIFECYCLE, {
     onData: ({ data: sub }) => {
       const ev = sub.data?.topologyLifecycle;
       if (ev?.kind) setLastEvent(ev.kind);
@@ -59,7 +60,7 @@ export default function TopologyView() {
 
   const live = Boolean(data?.racks?.length);
   const racks = useMemo<TopoRack[]>(
-    () => (live ? data.racks : DEMO_MODE_ENABLED ? DEMO : []),
+    () => (live ? (data?.racks ?? []) : DEMO_MODE_ENABLED ? DEMO : []),
     [data, live]
   );
 

@@ -1,5 +1,6 @@
 'use client';
-import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { gql } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react';
 import { useState } from 'react';
 import { DEMO_MODE_ENABLED } from '@/lib/publicDataMode';
 
@@ -23,11 +24,11 @@ const DISCOVER = gql`
 `;
 
 export default function NetworkInventory() {
-  const { data: racksData, error: racksError } = useQuery(RACKS, { errorPolicy: 'all', ssr: false });
+  const { data: racksData, error: racksError } = useQuery<Record<string, any>>(RACKS, { errorPolicy: 'all', ssr: false });
   const racks = racksData?.racks || (DEMO_MODE_ENABLED ? [{ id: 'demo', name: 'RACK-05 (démo)' }] : []);
   const [rackId, setRackId] = useState<string>(racks[0]?.id);
-  const [loadLinks, { data, loading }] = useLazyQuery(LINKS, { fetchPolicy: 'no-cache' });
-  const [discover, { data: report, loading: running }] = useMutation(DISCOVER);
+  const [loadLinks, { data, loading }] = useLazyQuery<Record<string, any>>(LINKS, { fetchPolicy: 'no-cache' });
+  const [discover, { data: report, loading: running }] = useMutation<Record<string, any>>(DISCOVER);
 
   const links = report?.discoverNetwork?.links || data?.networkLinks || [];
 

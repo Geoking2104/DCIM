@@ -29,7 +29,7 @@
     "graphql-subscriptions": "^3.0.0",
     "graphql-ws": "^6.3.0",
     "ioredis": "^5.11.1",
-    "jose": "^5.9.6",
+    "jose": "^6.2.12",
     "neo4j-driver": "^6.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

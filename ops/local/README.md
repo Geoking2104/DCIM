@@ -71,6 +71,9 @@ crates\target\debug\qinode-gateway.exe
   `CLICKHOUSE_URL=http://127.0.0.1:8123`, `CLICKHOUSE_DB=dcim`) puis `npx next start -p 3100`.
 - **Mode Rust** (lecture parallèle) : `GRAPHQL_UPSTREAM=rust`,
   `RUST_GATEWAY_URL=http://127.0.0.1:8088` — même UI, autre backend.
+- **Pages protégées** : le login local (compte `ops@qinode.eu`) n'est actif que si
+  `AUTH_PASSWORD` est défini au démarrage du serveur web (héritée de l'environnement) ;
+  sinon les pages back-office (power, métriques, journaux…) redirigent vers `/fr/login`.
 
 ## Windows : lanceurs prêts
 

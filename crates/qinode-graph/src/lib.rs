@@ -12,9 +12,15 @@ use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
 use uuid::Uuid;
 
+// Lecture tolérante : pendant la période de lecture parallèle Nest/Rust, des
+// nœuds peuvent porter les conventions camelCase historiques (heightU/siteId, startU…)
+// de l'ancien service, ou ne pas porter certains champs — on lit les deux
+// conventions (nombres convertis en entiers via toInteger — l'ancien service
+// écrit des flottants) et on retombe sur des valeurs neutres plutôt que d'échouer sur un
+// seul nœud non conforme (sinon toute la liste casse).
 const RACK_FIELDS: &str =
-    "r.id AS rack_id, r.name AS rack_name, r.height_u AS rack_height_u, r.site_id AS rack_site_id";
-const DEVICE_FIELDS: &str = "d.id AS device_id, d.name AS device_name, d.model AS device_model, d.start_u AS device_start_u, d.height_u AS device_height_u, rack.id AS device_rack_id";
+    "r.id AS rack_id, r.name AS rack_name, toInteger(coalesce(r.height_u, r.heightU, 0)) AS rack_height_u, coalesce(r.site_id, r.siteId, '') AS rack_site_id";
+const DEVICE_FIELDS: &str = "d.id AS device_id, d.name AS device_name, d.model AS device_model, toInteger(coalesce(d.start_u, d.startU, 0)) AS device_start_u, toInteger(coalesce(d.height_u, d.heightU, 1)) AS device_height_u, rack.id AS device_rack_id";
 
 #[derive(Clone, SimpleObject)]
 pub struct Device {
@@ -74,7 +80,7 @@ impl Neo4jStore {
 
     async fn racks(&self) -> Result<Vec<Rack>, String> {
         let cypher = format!(
-            "MATCH (r:Rack) OPTIONAL MATCH (d:Device)-[:MOUNTED_IN]->(r) RETURN {RACK_FIELDS}, d.id AS device_id, d.name AS device_name, d.model AS device_model, d.start_u AS device_start_u, d.height_u AS device_height_u ORDER BY r.id, d.id"
+            "MATCH (r:Rack) OPTIONAL MATCH (d:Device)-[:MOUNTED_IN]->(r) RETURN {RACK_FIELDS}, d.id AS device_id, d.name AS device_name, d.model AS device_model, toInteger(coalesce(d.start_u, d.startU, 0)) AS device_start_u, toInteger(coalesce(d.height_u, d.heightU, 1)) AS device_height_u ORDER BY r.id, d.id"
         );
         let mut rows = self
             .graph
@@ -101,7 +107,7 @@ impl Neo4jStore {
 
     async fn rack(&self, id: &str) -> Result<Option<Rack>, String> {
         let cypher = format!(
-            "MATCH (r:Rack {{id: $id}}) OPTIONAL MATCH (d:Device)-[:MOUNTED_IN]->(r) RETURN {RACK_FIELDS}, d.id AS device_id, d.name AS device_name, d.model AS device_model, d.start_u AS device_start_u, d.height_u AS device_height_u ORDER BY d.id"
+            "MATCH (r:Rack {{id: $id}}) OPTIONAL MATCH (d:Device)-[:MOUNTED_IN]->(r) RETURN {RACK_FIELDS}, d.id AS device_id, d.name AS device_name, d.model AS device_model, toInteger(coalesce(d.start_u, d.startU, 0)) AS device_start_u, toInteger(coalesce(d.height_u, d.heightU, 1)) AS device_height_u ORDER BY d.id"
         );
         let mut rows = self
             .graph
@@ -130,11 +136,19 @@ impl Neo4jStore {
     async fn rack_site(&self, id: &str) -> Result<Option<String>, String> {
         let mut rows = self
             .graph
-            .execute(query("MATCH (r:Rack {id: $id}) RETURN r.site_id AS site_id").param("id", id))
+            .execute(
+                query("MATCH (r:Rack {id: $id}) RETURN coalesce(r.site_id, r.siteId) AS site_id")
+                    .param("id", id),
+            )
             .await
             .map_err(neo4j_error)?;
         match rows.next().await.map_err(neo4j_error)? {
-            Some(row) => Ok(Some(field(&row, "site_id")?)),
+            Some(row) => {
+                let site: Option<String> = row
+                    .get("site_id")
+                    .map_err(|error| format!("Champ Neo4j site_id invalide: {error}"))?;
+                Ok(site)
+            }
             None => Ok(None),
         }
     }
@@ -145,7 +159,7 @@ impl Neo4jStore {
             .graph
             .execute(
                 query(
-                    "MATCH (d:Device {id: $id}) OPTIONAL MATCH (d)-[:MOUNTED_IN]->(r:Rack) RETURN r.site_id AS site_id",
+                    "MATCH (d:Device {id: $id}) OPTIONAL MATCH (d)-[:MOUNTED_IN]->(r:Rack) RETURN coalesce(r.site_id, r.siteId) AS site_id",
                 )
                 .param("id", id),
             )

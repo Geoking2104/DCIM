@@ -102,3 +102,50 @@ async fn topology_survives_schema_recreation() {
         .await;
     assert!(deleted.errors.is_empty(), "{:?}", deleted.errors);
 }
+
+/// Pendant la période de lecture parallèle Nest/Rust, des nœuds créés par
+/// l'ancien service portent des propriétés camelCase (et des nombres en
+/// flottants). La lecture doit les présenter sans échouer — et sans casser la
+/// liste complète — ni exiger une migration préalable.
+#[tokio::test]
+async fn rack_reads_bridge_legacy_camelcase_properties() {
+    if std::env::var("QINODE_NEO4J_INTEGRATION").as_deref() != Ok("true") {
+        return;
+    }
+    let uri = std::env::var("NEO4J_URI").expect("NEO4J_URI");
+    let user = std::env::var("NEO4J_USER").expect("NEO4J_USER");
+    let password = std::env::var("NEO4J_PASSWORD").expect("NEO4J_PASSWORD");
+    let graph = neo4rs::Graph::new(&uri, &user, &password)
+        .await
+        .expect("connect neo4j");
+
+    let legacy_id = "LEGACY-RACK-01";
+    graph
+        .run(
+            neo4rs::query(
+                "MERGE (r:Rack {id: $id}) SET r.name = 'Legacy rack', r.heightU = 42.0, r.siteId = 'PAR-1'",
+            )
+            .param("id", legacy_id),
+        )
+        .await
+        .expect("seed legacy node");
+
+    let schema = schema_from_env().await.expect("schema");
+    let response = schema
+        .execute(Request::new(r#"query { racks { id name heightU siteId } }"#).data(admin()))
+        .await;
+    assert!(response.errors.is_empty(), "{:?}", response.errors);
+    let data = response.data.into_json().expect("json");
+    let racks = data["racks"].as_array().expect("racks array");
+    let legacy = racks
+        .iter()
+        .find(|rack| rack["id"] == legacy_id)
+        .expect("legacy rack présent via le bridge camelCase");
+    assert_eq!(legacy["heightU"], 42);
+    assert_eq!(legacy["siteId"], "PAR-1");
+
+    graph
+        .run(neo4rs::query("MATCH (r:Rack {id: $id}) DELETE r").param("id", legacy_id))
+        .await
+        .expect("cleanup legacy node");
+}

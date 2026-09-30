@@ -8,6 +8,7 @@ import { UpdateDeviceInput } from './dto/update-device.input';
 import { UpdateRackInput } from './dto/update-rack.input';
 import { Device } from './models/device.model';
 import { LifecycleKind, TopologyLifecycleEvent } from './models/lifecycle-event.model';
+import { readNumber, readString } from './property-bridge';
 import { Rack } from './models/rack.model';
 import { PUB_SUB, TopologyEvents, TopologyPubSub } from './topology.constants';
 
@@ -166,7 +167,7 @@ export class TopologyService {
   /** Site du rack d'accueil d'un device (null si device absent ou non monté). */
   async deviceRackSite(deviceId: string): Promise<string | null> {
     const result = await this.neo4jService.read(
-      `MATCH (d:Device {id: $deviceId}) OPTIONAL MATCH (d)-[:INSTALLED_IN]->(r:Rack) RETURN r.siteId AS siteId`,
+      `MATCH (d:Device {id: $deviceId}) OPTIONAL MATCH (d)-[:INSTALLED_IN]->(r:Rack) RETURN coalesce(r.siteId, r.site_id) AS siteId`,
       { deviceId },
     );
     if (result.records.length === 0) return null;
@@ -174,14 +175,23 @@ export class TopologyService {
     return siteId ? String(siteId) : null;
   }
 
-  private num(v: any): number {
-    return typeof v?.toNumber === 'function' ? v.toNumber() : Number(v);
-  }
   private mapDevice(p: Record<string, any>): Device {
-    return { id: p.id, name: p.name, model: p.model, startU: this.num(p.startU), heightU: this.num(p.heightU) };
+    return {
+      id: p.id,
+      name: p.name,
+      model: p.model,
+      startU: readNumber(p, 'startU', 'start_u'),
+      heightU: readNumber(p, 'heightU', 'height_u', 1),
+    };
   }
   private mapRackProps(p: Record<string, any>, devices: Device[]): Rack {
-    return { id: p.id, name: p.name, heightU: this.num(p.heightU), siteId: p.siteId, devices };
+    return {
+      id: p.id,
+      name: p.name,
+      heightU: readNumber(p, 'heightU', 'height_u'),
+      siteId: readString(p, 'siteId', 'site_id'),
+      devices,
+    };
   }
   private mapRackRecord(record: any): Rack {
     const devices: Device[] = record.get('devices')

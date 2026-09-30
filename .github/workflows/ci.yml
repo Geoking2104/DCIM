@@ -36,6 +36,18 @@ jobs:
   topology-api:
     name: Topology API
     runs-on: ubuntu-latest
+    services:
+      neo4j:
+        image: neo4j:5.12-community
+        env:
+          NEO4J_AUTH: neo4j/ci_neo4j_password
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p ci_neo4j_password 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
     defaults:
       run:
         working-directory: dcim-topology-service
@@ -49,6 +61,36 @@ jobs:
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npm test
+      - name: Smoke boot (service + GraphQL round-trip)
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USERNAME: neo4j
+          NEO4J_PASSWORD: ci_neo4j_password
+          KEYCLOAK_OPTIONAL: "true"
+          PORT: "4001"
+        run: |
+          node dist/main.js > /tmp/topology-smoke.log 2>&1 &
+          APP_PID=$!
+          READY=0
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null -X POST http://127.0.0.1:4001/graphql \
+              -H 'content-type: application/json' --data '{"query":"{ racks { id name } }"}'; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" != "1" ]; then
+            echo "Service non disponible apres 60 s"; tail -n 50 /tmp/topology-smoke.log
+            kill "$APP_PID" 2>/dev/null || true
+            exit 1
+          fi
+          RESPONSE=$(curl -sf -X POST http://127.0.0.1:4001/graphql \
+            -H 'content-type: application/json' \
+            --data '{"query":"mutation { createRack(input: {name: \"CI-SMOKE\", heightU: 42, siteId: \"ci\"}) { id name } }"}')
+          echo "$RESPONSE"
+          echo "$RESPONSE" | grep -q '"createRack"' || { echo "createRack a echoue"; kill "$APP_PID" 2>/dev/null || true; exit 1; }
+          kill "$APP_PID" 2>/dev/null || true
 
   rust:
     name: Rust workspace
@@ -82,6 +124,42 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --workspace --all-features
+      - name: Build gateway binary
+        run: cargo build -p qinode-gateway
+      - name: Smoke boot (gateway + GraphQL round-trip)
+        env:
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USER: neo4j
+          NEO4J_PASSWORD: ci_neo4j_password
+          KEYCLOAK_OPTIONAL: "true"
+          LISTEN: 127.0.0.1:8088
+        run: |
+          ./target/debug/qinode-gateway > /tmp/gateway-smoke.log 2>&1 &
+          GW_PID=$!
+          READY=0
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:8088/health; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" != "1" ]; then
+            echo "Gateway non disponible apres 60 s"; tail -n 50 /tmp/gateway-smoke.log
+            kill "$GW_PID" 2>/dev/null || true
+            exit 1
+          fi
+          RESPONSE=$(curl -sf -X POST http://127.0.0.1:8088/graphql \
+            -H 'content-type: application/json' \
+            --data '{"query":"mutation { createRack(input: {name: \"CI-SMOKE-RUST\", heightU: 42, siteId: \"ci\"}) { id name heightU siteId } }"}')
+          echo "$RESPONSE"
+          echo "$RESPONSE" | grep -q '"createRack"' || { echo "createRack (rust) a echoue"; kill "$GW_PID" 2>/dev/null || true; exit 1; }
+          QUERY=$(curl -sf -X POST http://127.0.0.1:8088/graphql \
+            -H 'content-type: application/json' \
+            --data '{"query":"{ racks { id name heightU siteId } }"}')
+          echo "$QUERY"
+          echo "$QUERY" | grep -q 'CI-SMOKE-RUST' || { echo "lecture racks a echoue"; kill "$GW_PID" 2>/dev/null || true; exit 1; }
+          kill "$GW_PID" 2>/dev/null || true
 
   deployment-smoke:
     name: Container readiness

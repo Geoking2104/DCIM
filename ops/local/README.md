@@ -9,7 +9,7 @@ ClickHouse + Neo4j dans WSL2, services Rust/Nest sur Windows, web dans le naviga
 |---|---|---|---|
 | ClickHouse | 8123 | WSL2 | `docs/ingestion-durable.md` (§ Alternative sans Docker) |
 | Neo4j 5.26 | 7687 / 7474 | WSL2 | ci-dessous |
-| Mock GraphQL | 4000 | Windows | `.openclaw/tmp/mock-gql` (bac à sable UI) |
+| Mock GraphQL | 4000 | Windows | `ops/local/mock-gql` (bac à sable UI) |
 | Service Nest (Topology API) | 4001 | Windows | ci-dessous |
 | Gateway Rust | 8088 | Windows | ci-dessous |
 | Web (Next) | 3100 | Windows | ci-dessous |
@@ -71,6 +71,12 @@ crates\target\debug\qinode-gateway.exe
   `CLICKHOUSE_URL=http://127.0.0.1:8123`, `CLICKHOUSE_DB=dcim`) puis `npx next start -p 3100`.
 - **Mode Rust** (lecture parallèle) : `GRAPHQL_UPSTREAM=rust`,
   `RUST_GATEWAY_URL=http://127.0.0.1:8088` — même UI, autre backend.
+
+## Windows : lanceurs prêts
+
+Des scripts PowerShell paramétrés couvrent les démarrages courants
+(`ops/local/windows/` : service Nest, gateway, web en mode Nest ou Rust) —
+voir [windows/README.md](windows/README.md).
 
 ## Smokes (miroir des étapes CI)
 

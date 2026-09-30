@@ -36,4 +36,6 @@ Mêmes noms de champs camelCase que Nest. Les racks, devices et relations `MOUNT
    tests négatifs inter-tenants (`qinode-graph::auth_tests`,
    `resolver-scope.test.cjs`).
 2. Subscriptions multi-pod via un bus durable
-3. Période de lecture parallèle Nest/Rust avant retrait de Nest
+3. Période de lecture parallèle Nest/Rust avant retrait de Nest — ponts
+   d'interopérabilité **en place et validés** (#31, #33) ; resserrage sur la
+   convention canonique après retrait de Nest.

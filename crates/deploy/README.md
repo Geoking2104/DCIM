@@ -4,7 +4,7 @@
 
 Before applying it:
 
-1. Publish the gateway image and replace `qinode-gateway:0.1.0` with an immutable digest.
+1. Publish the gateway image (the [Publish workflow](../../.github/workflows/publish.yml) prints the immutable digest) and replace `qinode-gateway:0.1.0` with that digest.
 2. Replace the example Keycloak issuer and review the Neo4j and ClickHouse service names.
 3. Provision the `qinode-gateway-secrets` Secret with the `neo4j-password` key through the cluster secret manager. Do not commit the Secret manifest.
 4. Terminate TLS at the ingress or service mesh and restrict network access to the web/API namespaces and the required data services.

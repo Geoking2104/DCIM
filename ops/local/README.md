@@ -96,6 +96,12 @@ bash ops/local/smoke-gateway-ws.sh           # idem — aller-retour de subscrip
 
 - **PowerShell → WSL** : passer par des **scripts** (`.sh`) plutôt que des commandes
   inline (`$,`, `|`, espaces cassent l'échappement) ; guillemets simples PowerShell = verbatim.
+- **Neo4j démarré en daemon depuis une session WSL transitoire** : un `bin/neo4j start`
+  lancé via `wsl -- ...` meurt avec la session (SIGTERM de nettoyage, ~1-30 s après la fin
+  de la commande). Démarrer détaché : `setsid --fork bin/neo4j start` — ou garder la
+  session ouverte (`neo4j-wsl.sh start` en premier plan, comme ci-dessus). Vaut aussi pour
+  les redémarrages déclenchés par `ops/backup/backup-neo4j.sh` : après un exercice lancé
+  depuis une session éphémère, vérifier `neo4j-wsl.sh status` et relancer détaché si besoin.
 - Neo4j doit écouter sur `0.0.0.0` pour être joignable depuis Windows.
 - En développement : `KEYCLOAK_OPTIONAL=true` côté services **et** web, sinon les gardes
   rôles refusent (comportement voulu, fail-closed).

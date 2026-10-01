@@ -1,0 +1,9 @@
+<clickhouse>
+  <!-- Enables the File backup engine used by ops/backup/*.sh.
+       Mount into the server configuration directory, e.g. for Docker Compose:
+         - ./ops/backup/clickhouse-backups.xml:/etc/clickhouse-server/config.d/zz-backups.xml:ro
+       For production, point allowed_path at a dedicated backup volume. -->
+  <backups>
+    <allowed_path>/var/lib/clickhouse/backups/</allowed_path>
+  </backups>
+</clickhouse>

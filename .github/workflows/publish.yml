@@ -1,0 +1,112 @@
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Additional image tag (optional, e.g. test-2026-10-01)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  gateway-image:
+    name: Gateway image (ghcr)
+    runs-on: ubuntu-latest
+    services:
+      neo4j:
+        image: neo4j:5.12-community
+        env:
+          NEO4J_AUTH: neo4j/publish_smoke_password
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p publish_smoke_password 'RETURN 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      clickhouse:
+        image: clickhouse/clickhouse-server:23.8
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd "clickhouse-client --query 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute image name and tags
+        run: |
+          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')/qinode-gateway"
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          {
+            echo "IMAGE=$IMAGE"
+            echo "SHORT_SHA=$SHORT_SHA"
+            echo "TAGS<<EOF"
+            echo "$IMAGE:sha-$SHORT_SHA"
+            if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "$IMAGE:${GITHUB_REF_NAME}"; fi
+            if [ -n "${{ inputs.tag }}" ]; then echo "$IMAGE:${{ inputs.tag }}"; fi
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: crates
+          file: crates/Dockerfile
+          push: true
+          tags: ${{ env.TAGS }}
+      - name: Smoke the published image (liveness + readiness)
+        run: |
+          docker run -d --name gw-smoke \
+            --read-only --tmpfs /tmp --security-opt no-new-privileges:true \
+            --add-host=host.docker.internal:host-gateway \
+            -p 18088:8088 \
+            -e LISTEN=0.0.0.0:8088 \
+            -e NEO4J_URI=bolt://host.docker.internal:7687 \
+            -e NEO4J_USER=neo4j \
+            -e NEO4J_PASSWORD=publish_smoke_password \
+            -e CLICKHOUSE_URL=http://host.docker.internal:8123 \
+            -e CLICKHOUSE_DB=dcim \
+            -e KEYCLOAK_OPTIONAL=true \
+            "$IMAGE@${{ steps.build.outputs.digest }}"
+          READY=0
+          for _ in $(seq 1 30); do
+            if curl -sf -o /dev/null http://127.0.0.1:18088/health/ready; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" != "1" ]; then
+            echo "image smoke: readiness not reached"; docker logs gw-smoke
+            docker rm -f gw-smoke
+            exit 1
+          fi
+          curl --fail --silent --show-error http://127.0.0.1:18088/health/live
+          curl --fail --silent --show-error http://127.0.0.1:18088/health/ready
+          docker rm -f gw-smoke
+      - name: Write run summary (digest for deployment pinning)
+        run: |
+          {
+            echo "## Gateway image"
+            echo ""
+            echo "- Digest (pin deployments with it): \`$IMAGE@${{ steps.build.outputs.digest }}\`"
+            echo "- Tags:"
+            echo '```'
+            echo "$TAGS"
+            echo '```'
+            echo "See [crates/deploy/README.md](../blob/main/crates/deploy/README.md) for the Kubernetes baseline."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -63,7 +63,7 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 | **P1** | **In progress** | Durable operational data path | Explicit demo mode, fail-visible sources, Neo4j-backed Rust topology and a durable spool with idempotent replay (validated end-to-end on a real ClickHouse) are implemented; remaining: on-site hardware validation and retention policy |
 | **P1** | **In progress** | Identity and tenant isolation | RBAC/ABAC and tenant boundaries enforced on HTTP, GraphQL, subscriptions and machine routes, with negative tests, audit logging and collector service tokens; remaining: tenant scoping of the REST/web data routes and AI-retrieval filtering before the copilot activates |
 | **P1** | **Next** | Regulatory evidence engine | Ship effective-dated PUE/WUE/ERF rules, data-quality gates, tenant allocation, locked evidence snapshots, four-eyes review, EU/national exports, submission receipts, and official-label reconciliation |
-| **P2** | **In progress** | Production operations | Liveness/readiness probes, hardened containers, an HA gateway manifest, initial SLOs, and backup/restore policy are implemented; migrations, TLS automation, tracing, proven restores, retention, and full DR exercises remain |
+| **P2** | **In progress** | Production operations | Liveness/readiness probes, hardened containers, an HA gateway manifest, initial SLOs, backup/restore tooling with isolated restore exercises, and a digest-pinned image publish workflow are implemented; migrations, TLS automation, tracing, production-proven restores, retention, and full DR exercises remain |
 | **P2** | **Later** | Advanced product capabilities | Connect the WebGL digital twin to live topology and telemetry, complete CDU/liquid-cooling and heat-reuse workflows, then validate predictive AIOps and the air-gapped copilot with human controls |
 
 The next milestone is **P1: durable operational data and tenant isolation**. Requirements and acceptance criteria are maintained in the [Functional Requirements](docs/functional-requirements.md); the Rust migration sequence is described in the [Rust roadmap](docs/rust-roadmap.md).
@@ -133,6 +133,9 @@ Telegraf (SNMP/Redfish) → ClickHouse. Grafana alerting → webhook `POST /api/
 - [Metrics map](web/METRICS.md)
 - [Monitoring overlay](ops/MONITORING.md)
 - [Production operations readiness](docs/operations-readiness.md)
+- [Go-live checklist](docs/go-live.md)
+- [Backup and restore tooling](ops/backup/README.md)
+- [Load smoke (k6)](ops/load/README.md)
 - [Topology Service](dcim-topology-service/README.md)
 - [Multi-pod WebSocket Deployment](dcim-topology-service/deploy/README.md)
 

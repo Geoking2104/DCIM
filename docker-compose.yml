@@ -53,6 +53,7 @@ services:
       - "9000:9000"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
+      - ./ops/backup/clickhouse-backups.xml:/etc/clickhouse-server/config.d/zz-backups.xml:ro
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 10s

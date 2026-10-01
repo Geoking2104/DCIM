@@ -40,6 +40,8 @@ Neo4j Community supports offline dumps; online full/differential backup is an En
 
 ClickHouse supports full and incremental `BACKUP`/`RESTORE` workflows to configured disks or object storage. A backup is not accepted until an isolated restore has succeeded. See the [ClickHouse backup and restore documentation](https://clickhouse.com/docs/concepts/features/backup-restore/overview).
 
+Executable scripts and the automated isolated-restore exercises live in [`ops/backup/`](../ops/backup/README.md); run both exercises at least quarterly and keep their logs as evidence.
+
 Never restore over a production database as the first validation step. Restore into an isolated target, verify application-level invariants, record achieved RPO/RTO, and obtain operator approval before a cutover.
 
 ## Security and deployment gates

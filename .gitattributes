@@ -1,0 +1,8 @@
+# Keep shell scripts and workflow files LF-only on every platform.
+# (Windows checkouts with core.autocrlf=true otherwise break bash scripts:
+# a trailing CR becomes part of quoted values, e.g. passwords.)
+*.sh text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

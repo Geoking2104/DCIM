@@ -51,7 +51,7 @@ The local development stack provides Neo4j, ClickHouse, Redpanda, Qdrant, and Ol
 | Web application | Bilingual UI, topology and network views, power and sustainability metrics, EED preview, alert inbox, explicit live/demo data policy | Replace remaining demonstrations with validated production connectors and operational data paths |
 | Topology API | Neo4j-backed rack/device/network GraphQL operations, subscriptions, resolver-level authorization, Keycloak groundwork | Migrate reads to the canonical property convention after Nest retirement; keep expanding automated tests |
 | Rust services | PUE/WUE core, HTTP gateway, ClickHouse and Redfish foundations, Neo4j-backed GraphQL topology, resolver authorization, hardened JWKS, collector service tokens | Production-grade multi-pod subscriptions (durable bus) and canonical-property cleanup after the parallel-read period |
-| Telemetry and operations | Docker Compose, ClickHouse, Redpanda, Prometheus, Grafana, Telegraf and BMS read/write interlock examples | Validate end-to-end ingestion, persistence, replay, alerting, backups, and deployment hardening |
+| Telemetry and operations | Docker Compose, ClickHouse, Redpanda, Prometheus, Grafana, Telegraf, BMS read/write interlock examples, executable backup/restore tooling with automated isolated restore exercises, a k6 read-path load smoke, and digest-pinned image publishing | Validate ingestion on real hardware, scheduled backups and retention, alerting, and deployment hardening |
 | Compliance and evidence | Requirements, regulatory baseline, metric previews, and EED demonstration UI | Implement versioned rules, quality gates, immutable snapshots, review workflow, exports, receipts, and official-label reconciliation |
 
 ## Development priorities
@@ -94,6 +94,8 @@ cargo test --workspace --all-features
 ```
 
 Docker-free local full-stack (WSL2, no Docker): see [`ops/local/README.md`](ops/local/README.md).
+
+Operational tooling: [backup/restore exercises](ops/backup/README.md), [k6 load smoke](ops/load/README.md) and [digest-pinned image publishing](.github/workflows/publish.yml) are in place and exercised in CI; the [go-live checklist](docs/go-live.md) tracks what remains before production.
 
 ## Metrics and supervision
 

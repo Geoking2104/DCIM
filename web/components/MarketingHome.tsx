@@ -336,7 +336,7 @@ export default function MarketingHome({ locale }: { locale: string }) {
             <div className="w-9 h-9 rounded-lg bg-[#032D60] flex items-center justify-center text-white font-extrabold">Q</div>
             <div>
               <div className="font-bold tracking-tight">QINODE.EU</div>
-              <div className="text-[12px] text-slate-500 mt-1 leading-5">677 Avenue de la République, Lille — France<br />Plateforme DCIM souveraine, on-premise, sans cloud obligatoire.</div>
+              <div className="text-[12px] text-slate-500 mt-1 leading-5">36, rue de l’Abbé Groult, 75015 Paris — France<br />Plateforme DCIM souveraine, on-premise, sans cloud obligatoire.</div>
             </div>
           </div>
           <div className="text-[11px] font-mono text-slate-400 leading-6">

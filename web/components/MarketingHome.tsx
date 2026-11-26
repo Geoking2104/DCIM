@@ -318,26 +318,14 @@ export default function MarketingHome({ locale }: { locale: string }) {
       </section>
 
       <section className="max-w-[1200px] mx-auto px-6 lg:px-8 pb-12">
-        <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6">
-          <div className="bg-white border border-slate-200 rounded-xl p-4">
-            <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Stack souveraine — pour les équipes techniques</div>
-            <div className="mt-2 text-[12px] leading-5 text-slate-600">Déploiement on-premise, données chez vous. Capteurs → ingest → ClickHouse / graphe → KPI EED → jumeau 3D.</div>
-            <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-500">
-              <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">On-prem</span>
-              <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">Air-gapped possible</span>
-              <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">France / EU</span>
-              <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">24/24</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white border border-slate-200 rounded-xl p-3.5">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Référence éditeur</div>
-              <a href="https://www.straton-dcim.com" target="_blank" rel="noopener" className="mt-1 block font-semibold text-[13px] text-[#032D60] hover:text-[#0176D3] underline underline-offset-4">STRATON DCIM</a>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-xl p-3.5">
-              <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Référence produit</div>
-              <a href="https://www.straton-dcim.com/sunbird" target="_blank" rel="noopener" className="mt-1 block font-semibold text-[13px] text-[#032D60] hover:text-[#0176D3] underline underline-offset-4">Sunbird DCIM</a>
-            </div>
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Stack souveraine — pour les équipes techniques</div>
+          <div className="mt-2 text-[12px] leading-5 text-slate-600">Déploiement on-premise, données chez vous. Capteurs → ingest → ClickHouse / graphe → KPI EED → jumeau 3D.</div>
+          <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-mono text-slate-500">
+            <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">On-prem</span>
+            <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">Air-gapped possible</span>
+            <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">France / EU</span>
+            <span className="border border-slate-200 bg-[#F8FAFC] px-2 py-1 rounded">24/24</span>
           </div>
         </div>
       </section>
